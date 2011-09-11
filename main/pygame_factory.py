@@ -54,6 +54,87 @@ class TECLA:
     DESCE=117
     EMPURRA=97
     PUXA=103
+class TextBox(Sprite):
+    def __init__(self):
+        Sprite.__init__(self)
+        self.initFont()
+        self.initImage()
+        self.initGroup()
+        self.setText(['a','b'])
+
+    def initFont(self):
+        pygame.font.init()
+        self.font = pygame.font.Font(None,3)
+
+    def initImage(self):
+        self.image = pygame.Surface((200,80))
+        self.image.fill((255,255,255))
+        self.rect = self.image.get_rect()
+        self.rect.top = 0 ; self.rect.left = 0
+    def display_box(screen, message):
+        "Print a message in a box in the middle of the screen"
+        font = pygame.font.Font(None, 18)
+        rect = pygame.Rect([0, 0, 220, 22])
+        offset = (3, 3)
+    
+        center = screen.get_rect().center
+        rect.center = center
+    
+        pygame.draw.rect(screen, (0, 0, 0), rect, 0)
+        pygame.draw.rect(screen, (255,255,255), rect, 1)
+    
+        rect.left += offset[0]
+        rect.top  += offset[1]
+    
+        if len(message) != 0:
+            screen.blit(font.render(message, 1, (255,255,255)), rect.topleft)
+        
+        pygame.display.flip()
+    
+    def ask(screen, question):
+        "ask(screen, question) -> answer"
+        pygame.font.init()  
+        text = ""
+        display_box(screen, question + ": " + text)
+    
+        while True:
+            pygame.time.wait(50)
+            event = pygame.event.poll()
+            
+            if event.type == QUIT:
+                sys.exit()	 
+            if event.type != KEYDOWN:
+              continue
+              
+            if event.key == K_BACKSPACE:
+                text = text[0:-1]
+            elif event.key == K_RETURN:
+                break
+            else:
+                text += event.unicode.encode("ascii")
+                
+            display_box(screen, question + ": " + text)
+            
+        return text
+
+
+    def setText(self,text):
+        tmp = pygame.display.get_surface()
+        x_pos = self.rect.left+5
+        y_pos = self.rect.top+5
+
+        for t in text:
+            x = self.font.render(t,False,(0,0,0))
+            tmp.blit(x,(x_pos,y_pos))
+            x_pos += 10
+
+            if (x_pos > self.image.get_width()-5):
+                x_pos = self.rect.left+5
+                y_pos += 10
+
+    def initGroup(self):
+        self.group = pygame.sprite.GroupSingle()
+        self.group.add(self)
     
 class Empacotador(Sprite):
     EBUFF = None
@@ -95,6 +176,8 @@ class Empacotador(Sprite):
         ox, oy = self.rect.topleft
         self.rect.topleft = (ox+x,oy+y)
         Empacotador.MESTRE.change_layer(self,oy+y)
+    def collidepoint(self,x,y):
+        return self.rect.collidepoint(x,y)
     @classmethod
     def clear(self,buffer):
         Empacotador.MESTRE.clear(buffer, Empacotador.EBUFF)
@@ -152,7 +235,8 @@ class GUI:
         pygame.init()
         self.font = pygame.font.Font('freesansbold.ttf', 30)
         self.listeners = []
-        self.layers = Empacotador
+        self.do_up = self._do_up
+        self.do_down = self._do_nothing
     
         # Set the screen size.
         self.tela = pygame.display.set_mode((CANVASW, CANVASH))
@@ -181,7 +265,6 @@ class GUI:
             android.map_key(23, KL.K_HOME)
             self.text(150,50,'android: %d  escape: %d'%(
                 android.KEYCODE_BACK, pygame.K_ESCAPE))
- 
 
         while True:
             ev = pygame.event.wait()
@@ -202,10 +285,22 @@ class GUI:
                     self.lidador_de_tecla(ev.key)
                     pygame.display.flip()
             elif ev.type == pygame.MOUSEBUTTONDOWN:
-                print ev.button, self.listeners
-                if ev.button == 1:
-                    for object in self.listeners:
-                        object.click(*ev.pos)
+                self.do_down(ev)
+            elif ev.type == pygame.MOUSEBUTTONUP:
+                self.do_up(ev)
+    def _do_nothing(self, ev):
+        pass
+    def _do_down(self, ev):
+        self.do_down = self._do_nothing
+        self.do_up = self._do_up
+    def _do_up(self, ev):
+        self.do_up = self._do_nothing
+        self.do_down = self._do_down
+        #print ev.button, self.listeners
+        if ev.button == 1:
+            for object in self.listeners:
+                object.click(*ev.pos)
+        
     def _redraw(self):
         rectlist = Empacotador.clear(self.buffer)
         rectlist += Menu.clear(self.buffer)
