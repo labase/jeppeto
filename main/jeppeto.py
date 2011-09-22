@@ -19,7 +19,7 @@ __date__    = "2011/09/09 $Date$"
 import zipfile
 from io import BytesIO
 ICONS = zipfile.ZipFile('/home/carlo/shine-icon-set.zip', 'r')
-ICO = file('/home/carlo/png/16x16/accept.png')
+#ICO = file('/home/carlo/png/16x16/accept.png')
 
 class JPObject(list):
     def __init__(self, container = None):
@@ -51,7 +51,7 @@ class Jeppeto(JPObject):
     
 def main():
     from pygame_factory import GUI
-    from gui_wrapper import App
+    from gui_decorator import App
     jeppeto = Jeppeto()
     main = App(GUI(),jeppeto,action = jeppeto.create_child)
     main.start('Jeppeto')

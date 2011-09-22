@@ -42,18 +42,6 @@ FPS = 8
 CANVASW, CANVASH = 800, 600
 COLOR={'forest green':CL('#228B22') , 'navajo white':CL('#FFDFB0')}
 
-class TECLA: 
-    ACIMA=111
-    ABAIXO=116
-    DIREITA=114
-    ESQUERDA=113
-
-    BRANCO=65
-    ENTER=36
-    SOBE=112
-    DESCE=117
-    EMPURRA=97
-    PUXA=103
 class TextBox(Sprite):
     def __init__(self):
         Sprite.__init__(self)
@@ -178,6 +166,8 @@ class Empacotador(Sprite):
         Empacotador.MESTRE.change_layer(self,oy+y)
     def collidepoint(self,x,y):
         return self.rect.collidepoint(x,y)
+    def click(self, handler):
+        self.click_listener.add((handler,self.collidepoint))
     @classmethod
     def clear(self,buffer):
         Empacotador.MESTRE.clear(buffer, Empacotador.EBUFF)
@@ -215,8 +205,11 @@ class Menu(Empacotador):
         return (name,BytesIO(f))
     def translatez(self,x,y):
         self.translate(x,y)
+    def collidepoint(self,x,y):
+        return True
     @classmethod
     def clear(self,buffer):
+        print 'cl ',
         Menu.BUFFER.clear(buffer, Menu.MBUFF)
         return Menu.BUFFER.draw(buffer)
     @classmethod
@@ -229,14 +222,20 @@ class Icon(Menu):
     def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None):
         self.create(source, x, y ,w , h, l , f, buff)
     
+class NullIcon(Menu):
+    def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None):
+        self.create(source, x, y ,w , h, l , f, buff)
+    def collidepoint(self,x,y):
+        return False
+    
 class GUI:
     LY = Camada()
     def __init__(self):
         pygame.init()
         self.font = pygame.font.Font('freesansbold.ttf', 30)
-        self.listeners = []
+        self.click_listeners = []
         self.do_up = self._do_up
-        self.do_down = self._do_nothing
+        self.do_down = self._do_down #self._do_nothing
     
         # Set the screen size.
         self.tela = pygame.display.set_mode((CANVASW, CANVASH))
@@ -249,22 +248,11 @@ class GUI:
         self.buffer = pygame.Surface([CANVASW, CANVASH])
         self.buffer.fill(COLOR['forest green']) #(COLOR['navajo white'])
         self.buffer = self.buffer.convert()
-        self.LIDADOR = {KL.K_DOWN: self.Down,KL.K_END: self.End,
-                   KL.K_RETURN: self.Return, KL.K_HOME: self.Home,
-                   KL.K_LEFT: self.Left,KL.K_PAGEDOWN: self.Next,
-                   KL.K_PAGEUP: self.Prior,KL.K_RIGHT: self.Right,
-                   KL.K_UP: self.Up, ' ':self.space}
-
     def create_game(self,game,title):
         self.game = game
         pygame.display.set_caption(title)
         if android:
             android.map_key(android.KEYCODE_BACK, pygame.K_ESCAPE)
-            android.map_key(66, KL.K_PAGEUP)
-            android.map_key(67, KL.K_PAGEDOWN)
-            android.map_key(23, KL.K_HOME)
-            self.text(150,50,'android: %d  escape: %d'%(
-                android.KEYCODE_BACK, pygame.K_ESCAPE))
 
         while True:
             ev = pygame.event.wait()
@@ -281,9 +269,6 @@ class GUI:
                 if ev.key in (pygame.K_ESCAPE,'q',4):
                     self.terminate()
                     break
-                else:
-                    self.lidador_de_tecla(ev.key)
-                    pygame.display.flip()
             elif ev.type == pygame.MOUSEBUTTONDOWN:
                 self.do_down(ev)
             elif ev.type == pygame.MOUSEBUTTONUP:
@@ -292,14 +277,18 @@ class GUI:
         pass
     def _do_down(self, ev):
         self.do_down = self._do_nothing
+        self.last = self.tela.copy()
         self.do_up = self._do_up
     def _do_up(self, ev):
         self.do_up = self._do_nothing
         self.do_down = self._do_down
         #print ev.button, self.listeners
         if ev.button == 1:
-            for object in self.listeners:
-                object.click(*ev.pos)
+            for item in self.click_listeners:
+                print item.action
+                if item.collide(*ev.pos):
+                    print ev.pos
+                    item.action(*ev.pos)
         
     def _redraw(self):
         rectlist = Empacotador.clear(self.buffer)
@@ -318,38 +307,20 @@ class GUI:
         return Empacotador(source,x,y,w,h, l, f, buff)
     def icon(self):#,source,x,y,w,h, l=None, f=None, buff= None):
         #menu = Menu(source,x,y,w,h, l, f, buff)
-        Menu.MBUFF = self.tela.copy()
+        Menu.MBUFF = self.buffer.copy()#self.last #self.tela.copy()
         return Menu()#source,x,y,w,h, l, f, buff)
-    def add_listener(self, evento):
-        self.listeners.append(evento)
-    def remove_listener(self, evento):
-        self.listeners.remove(evento)
-    def lidador_de_tecla(self, evento):
-        if evento in self.LIDADOR:
-            self.LIDADOR[evento](evento)
-            return False
-        return True
-    def Return(self, ev): self.game.quandoApertaUmaTecla(TECLA.ENTER);return False
-    def space(self, ev): self.game.quandoApertaUmaTecla(TECLA.BRANCO);return False
-    def Right(self, ev): self.game.track.forward();return False
-    def Left(self, ev): self.game.track.backward();return False
-    def Up(self, ev): self.game.track.popback();return False
-    def Down(self, ev): self.game.track.popfront();return False
-    def Next(self, ev): self.game.quandoApertaUmaTecla(TECLA.DESCE);return False
-    def Prior(self, ev): self.game.quandoApertaUmaTecla(TECLA.SOBE);return False
-    def Home(self, ev): self.game.quandoApertaUmaTecla(TECLA.EMPURRA);return False
-    def End(self, ev): self.game.quandoApertaUmaTecla(TECLA.PUXA);return False
+    def click(self, object):
+        self.click_listeners.append(object)
+    def unclick(self, object):
+        print 'removing'
+        self.click_listeners.remove(object)
+        self._redraw()
+        self.tela.blit(self.buffer,(0,0))
+        pygame.display.flip()
+        
     
     def terminate(self):
         pygame.quit()
         #sys.exit()
 
-
-def main():
-    from train import Trains
-    trains = Trains()
-    trains.init(GUI())
-    
-if __name__ == "__main__":
-    main()
 
