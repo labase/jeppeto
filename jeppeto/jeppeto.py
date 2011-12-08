@@ -16,32 +16,93 @@ Jeppeto : An Educational Game Builder
 __author__  = "Carlo E. T. Oliveira (cetoli@yahoo.com.br) $Author: cetoli $"
 __version__ = "0.1 $Revision$"[10:-1]
 __date__    = "2011/09/09 $Date$"
-import zipfile
-from io import BytesIO
-ICONS = zipfile.ZipFile('/home/carlo/shine-icon-set.zip', 'r')
-#ICO = file('/home/carlo/png/16x16/accept.png')
 
-class JPObject(list):
-    def __init__(self, container = None):
+class JPTerm(list):
+    def __init__(self, container = None, name = None):
         self.container = container
+        self.name = name
     def create(self):
         pass
-    def create_child(self,icon):
-        pass
+NULLTERM = type('_Nenhures',(),dict(__call__ = lambda self: self
+                                    , create = lambda self: self))
+del _Nenhures
 
-class JPClass(JPObject):
+class JPClass(JPTerm,dict):
     def create(self):
         return self.icon 
-    def create_child(self,master):
+    def create_class(self,name):
+        self.append(name)
+        return name
+    def create_method(self,name):
         child = JPMethod(self)
-        self.append(child)
-        return (child, child.create_child)
+        self[name]= child
+        return (name, child)
+    def build(self):
+        return type(self.name,tuple(s for s in self)
+                , dict((m, c.build()) for m, c in self.items()))
 
-class JPMethod(JPObject):
+class JPMethod(JPTerm,dict):
     def create(self):
         return self.icon 
+    def create_argument(self,name,value=NULTERM):
+        self[name]= value
+        return (name, value)
+    def create_statement(self,name):
+        child = JPStatement(self,name)
+        self.append(child)
+        return child
+    def create_assignment(self,name):
+        child = JPAssignment(self,name)
+        self.append(child)
+        return (name, child)
+    def build(self):
+        a = [argument for argument, value in self.items() if value is NULLTERM]
+        k = dict((argument,value) for argument, value in self.items()
+            if not (value is NULLTERM))
+        lines = ','.join(line.build() for line in self[:-1])
+        last = self[-1].build()
+        body ='body = lambda self, %s : (%s) and None or %s'%(param, lines, last)
+        eval(body)
+        return body
+        return lambda zelf, lines=lines, **kwargs: tuple(
+                line(zelf, **kwargs) for line in lines[:-1]
+            ) and None or lines[-1](zelf, **kwargs)
      
-class Jeppeto(JPObject):
+class JPAssignment(JPTerm):
+    def create(self):
+        return self.icon 
+    def create_value(self, value=NULTERM):
+        self.value = value
+        return self.value
+    def create_statement(self,name):
+        self.value = JPStatement(self,name)
+        return self.value
+    def create_assignment(self,name):
+        self.value = JPAssignment(self,name)
+        return self.value
+    def build(self):
+        return 'setattr(self,%s,%s)'%(self.name,self.value)
+     
+class JPStatement(JPTerm):
+    def create(self):
+        return self.icon 
+    def create_argument(self,name,value=NULTERM):
+        self[name]= value
+        return (name, value)
+    def create_name(self,name, value=NULTERM):
+        self.value = value
+        return self.value
+    def create_statement(self):
+        self.value = JPStatement(self)
+        return self.value
+    def create_assignment(self,name):
+        self.value = JPAssignment(self,name)
+        return self.value
+    def build(self):
+        return lambda zelf, name = self.name, value = self.value, **kwargs: setattr(
+            zelf,name,value(zelf,**kwargs))
+     
+class Jeppeto(JPTerm):
     """ Engenho de Criação de Jogos educacionais
     """
     def create_child(self,master):
