@@ -29,11 +29,12 @@ try:
 except ImportError:
     android = None
 from time import time
-
+'''
 import zipfile
 from io import BytesIO
 ICONS = zipfile.ZipFile('/home/carlo/shine-icon-set.zip', 'r')
 IMAGEREPO = 'image/'
+'''
 # Event constant.
 TIMEREVENT = pygame.USEREVENT
 
@@ -44,6 +45,60 @@ COLOR={'forest green':'#228B22' , 'navajo white':'#FFDFB0', 'white':'#FFFFFF'
         ,'darksalmon':'#E9967A', 'peachpuff':'#FFDAB9', 'maroon':'#800000'
         ,'lightsalmon':'#FFA07A', 'saddlebrown':'#8B4513'
         ,'darkbrown':'#462813','linen':'#FAF0E6'}
+
+COLOR = dict((name,CL(color))for name, color in COLOR.items())
+
+class HandleEvent(dict):
+    def __init__(self,gui):
+        self.gui = gui
+        self.update(
+            {pygame.QUIT	     : self.QUIT,
+            pygame.ACTIVEEVENT	     : self.ACTIVEEVENT,
+            pygame.KEYDOWN	     : self.KEYDOWN,
+            pygame.KEYUP	     : self.KEYUP,
+            pygame.MOUSEMOTION	     : self.MOUSEMOTION,
+            pygame.MOUSEBUTTONUP    : self.MOUSEBUTTONUP,
+            pygame.MOUSEBUTTONDOWN  : self.MOUSEBUTTONDOWN,
+            pygame.JOYAXISMOTION    : self.JOYAXISMOTION,
+            pygame.JOYBALLMOTION    : self.JOYBALLMOTION,
+            pygame.JOYHATMOTION     : self.JOYHATMOTION,
+            pygame.JOYBUTTONUP      : self.JOYBUTTONUP,
+            pygame.JOYBUTTONDOWN    : self.JOYBUTTONDOWN,
+            pygame.VIDEORESIZE      : self.VIDEORESIZE,
+            pygame.VIDEOEXPOSE      : self.VIDEOEXPOSE,
+            pygame.USEREVENT        : self.USEREVENT
+            }
+        )
+    def QUIT(self, event): 
+        self.gui.terminate()
+        return True
+    def ACTIVEEVENT(self, event): pass
+    def KEYDOWN(self, event):
+        if ev.key in (pygame.K_ESCAPE,'q',4):
+            self.gui.terminate()
+            return True
+    def KEYUP(self, event): pass
+    def MOUSEMOTION(self, event): pass
+    def MOUSEBUTTONUP(self, event):
+        self.gui.do_down(event)
+        self.gui.do_up(event)
+    def MOUSEBUTTONDOWN(self, event): pass
+    def JOYAXISMOTION(self, event): pass
+    def JOYBALLMOTION(self, event): pass
+    def JOYHATMOTION(self, event): pass
+    def JOYBUTTONUP(self, event): pass
+    def JOYBUTTONDOWN(self, event): pass
+    def VIDEORESIZE(self, event): pass
+    def VIDEOEXPOSE(self, event): pass
+    def USEREVENT(self, event):
+        self.gui._redraw()
+    def loop(self):
+        while True:
+            event = pygame.event.wait()
+            if android:
+                if android.check_pause():
+                    android.wait_for_resume()
+            if self[event.type](event): break
 
 class TextBox(Sprite):
     def __init__(self):
@@ -183,54 +238,6 @@ class Empacotador(Sprite):
 
     def __eq__(self,other): return self.name == other.name
 
-class Menu(Empacotador):
-    BUFFER = Camada()
-    MBUFF = None
-    def __init__(self):
-        self.create_menu()
-    def create_menu(self):
-        self.names = [x for x in ICONS.namelist() if ('16' in x) and ('.png' in x)]
-        for ind, name in enumerate(self.names):
-            f = ICONS.open(name).read()
-            contents = BytesIO(f)
-            x, y = 10+(ind // 20) * 20, 10+(ind % 20) * 20
-            Icon(name, x, y,16, 16, f='png', buff=contents)
-    def _add_buff(self,z=None):
-        Menu.BUFFER.add(self)
-    def remove(self, x=10, y=10):
-        for icon in Menu.BUFFER :
-            Menu.BUFFER.remove(icon)
-        index = ((x-10)//20) *20 + (y-10)//20
-        name = self.names[index]
-        name = name.replace('16x16','128x128')
-        f = ICONS.open(name).read()
-        print name
-        return (name,BytesIO(f))
-    def translatez(self,x,y):
-        self.translate(x,y)
-    def collidepoint(self,x,y):
-        return True
-    @classmethod
-    def clear(self,buffer):
-        print 'cl ',
-        Menu.BUFFER.clear(buffer, Menu.MBUFF)
-        return Menu.BUFFER.draw(buffer)
-    @classmethod
-    def init(self):
-        buff = pygame.Surface([CANVASW, CANVASH])
-        buff.fill(COLOR['forest green']) #(COLOR['navajo white'])
-        Menu.MBUFF = buff.convert()
-
-class Icon(Menu):
-    def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None):
-        self.create(source, x, y ,w , h, l , f, buff)
-    
-class NullIcon(Menu):
-    def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None):
-        self.create(source, x, y ,w , h, l , f, buff)
-    def collidepoint(self,x,y):
-        return False
-    
 class GUI:
     LY = Camada()
     def __init__(self):
@@ -242,9 +249,9 @@ class GUI:
     
         # Set the screen size.
         self.tela = pygame.display.set_mode((CANVASW, CANVASH))
-        self.tela.fill(COLOR['forest green'])
+        #self.tela.fill(COLOR['forest green'])
         Empacotador.init()
-        Menu.init()
+        #Menu.init()
         # Use a timer to control FPS.
         pygame.time.set_timer(TIMEREVENT, 1000 / FPS)
 
@@ -256,26 +263,7 @@ class GUI:
         pygame.display.set_caption(title)
         if android:
             android.map_key(android.KEYCODE_BACK, pygame.K_ESCAPE)
-
-        while True:
-            ev = pygame.event.wait()
-            #self._redraw()
-            if android:
-                if android.check_pause():
-                    android.wait_for_resume()
-
-            if ev.type == TIMEREVENT:
-                self._redraw()
-                self.tela.blit(self.buffer,(0,0))
-                pygame.display.flip()
-            elif ev.type == pygame.KEYDOWN:
-                if ev.key in (pygame.K_ESCAPE,'q',4):
-                    self.terminate()
-                    break
-            elif ev.type == pygame.MOUSEBUTTONDOWN:
-                self.do_down(ev)
-            elif ev.type == pygame.MOUSEBUTTONUP:
-                self.do_up(ev)
+        HandleEvent(self).loop()
     def _do_nothing(self, ev):
         pass
     def _do_down(self, ev):
@@ -291,19 +279,22 @@ class GUI:
                 print item.action
                 if item.collide(*ev.pos):
                     print ev.pos
-                    item.action(*ev.pos)
+                    if item.action(*ev.pos):
+                        break
         
     def _redraw(self):
         rectlist = Empacotador.clear(self.buffer)
-        rectlist += Menu.clear(self.buffer)
+        #rectlist += Menu.clear(self.buffer)
         pygame.display.update(rectlist)
+        self.tela.blit(self.buffer,(0,0))
+        pygame.display.flip()
 
     def text(self,x,y,texto,color='navajo white'):
         label = self.font.render(texto, 1, COLOR[color])
         self.buffer.blit(label, (x,y))
         return label
     def rect(self,x,y,w,h,color='navajo white', hexcolor=None):
-        obj = pygame.draw.rect(self.buffer, hexcolor or COLOR[color], (x,y,w,h))
+        obj = pygame.draw.rect(self.buffer, hexcolor and CL(hexcolor) or COLOR[color], (x,y,w,h))
         return obj
 
     def image(self,source,x,y,w,h, l=None, f=None, buff= None):
@@ -313,7 +304,7 @@ class GUI:
         Menu.MBUFF = self.buffer.copy()#self.last #self.tela.copy()
         return Menu()#source,x,y,w,h, l, f, buff)
     def click(self, object):
-        self.click_listeners.append(object)
+        self.click_listeners.insert(0,object)
     def unclick(self, object):
         print 'removing'
         self.click_listeners.remove(object)

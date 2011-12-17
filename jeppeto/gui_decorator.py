@@ -26,7 +26,7 @@ class ClickDecorator:
     def collide(self,x,y):
         return self.object.avatar.collidepoint(x,y)
 
-class GuiObject(list):
+class GuiObject:#(list):
     def __init__(self, gui, container = None, icon = None, action = None):
         self.gui = gui
         self.activate = self._click_template
@@ -41,14 +41,16 @@ class GuiObject(list):
         pass
     def click(self,x,y):
         self.activate(x,y)
+        return True
     def _click(self,x,y):
         print 'super',x,y
     def _no_click(self,x,y):
         pass
     def _click_template(self,x,y):
         self.activate = self._no_click
-        self._click(x, y)
+        go = self._click(x, y)
         self.activate = self._click_template
+        return go
     def create_child(self,icon):
         pass
 

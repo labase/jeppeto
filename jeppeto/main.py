@@ -19,24 +19,54 @@ __date__    = "2011/12/12 $Date$"
 
 from gui_decorator import Item
 
-class App(Item):
+class Composite(Item):
+    """ Um item composto
+    """
+    def create(self):
+        self.items =[]
+        self.activate = self._no_click
+        return self.icon
+    def _click(self,x,y):
+        
+        x,y = self.xy = (x,y)
+        print 'self.xy x, y = ',self.xy, self
+        color = x% 256 *256*256 + y% 256*256  +(x*y)% 256
+        icon = self.gui.rect( x,y,50, 50,hexcolor='#%06x'%color)
+        self.items.append(Composite(self.gui,self,icon))
+        self.reshape(x,y)
+        return True
+    def reshape(self,x,y):
+        self.avatar.inflate(50,50)
+        self.container.reshape(x,y)
+    def n_click_template(self,x,y):
+        self.activate = self._no_click
+        self._click(x, y)
+    
+
+class App(Composite):
     """ Engenho de Criação de Jogos educacionais
     """
     def start(self, name):
         self.gui.create_game(self, name)
     def create(self):
+        self.items =[]
         app = self.gui.text(350, 10, 'Jeppeto')
         app = self.gui.rect(50, 50, 700, 500)
+        self.activate = self._click
         return app
+    def reshape(self,x,y):
+        pass
+    '''
     def _click(self,x,y):
         
-            self.xy = (x,y)
+            x,y = self.xy = (x,y)
             print 'self.xy x, y = ',self.xy
-            self.menu = Menu(self.gui,self,action=self.create_child)
+            color = x% 256 *256*256 + y% 256*256  +(x*y)% 256
+            self.items.append(self.gui.rect( x,y,50, 50,hexcolor='#%06x'%color))
     def _click_template(self,x,y):
-        self.activate = self._no_click
+        #self.activate = self._no_click
         self._click(x, y)
-    
+    '''    
 def main():
     from pygame_factory import GUI
     main = App(GUI())
