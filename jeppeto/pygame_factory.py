@@ -40,7 +40,10 @@ TIMEREVENT = pygame.USEREVENT
 # The FPS the game runs at.
 FPS = 8
 CANVASW, CANVASH = 800, 600
-COLOR={'forest green':CL('#228B22') , 'navajo white':CL('#FFDFB0')}
+COLOR={'forest green':'#228B22' , 'navajo white':'#FFDFB0', 'white':'#FFFFFF'
+        ,'darksalmon':'#E9967A', 'peachpuff':'#FFDAB9', 'maroon':'#800000'
+        ,'lightsalmon':'#FFA07A', 'saddlebrown':'#8B4513'
+        ,'darkbrown':'#462813','linen':'#FAF0E6'}
 
 class TextBox(Sprite):
     def __init__(self):
@@ -299,8 +302,8 @@ class GUI:
         label = self.font.render(texto, 1, COLOR[color])
         self.buffer.blit(label, (x,y))
         return label
-    def rect(self,x,y,w,h,color='navajo white'):
-        obj = pygame.draw.rect(self.buffer, COLOR[color], (x,y,w,h))
+    def rect(self,x,y,w,h,color='navajo white', hexcolor=None):
+        obj = pygame.draw.rect(self.buffer, hexcolor or COLOR[color], (x,y,w,h))
         return obj
 
     def image(self,source,x,y,w,h, l=None, f=None, buff= None):

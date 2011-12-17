@@ -47,7 +47,7 @@ class Passagem(Local):
     def _inicia(self):
         self.local = NENHURES
         self.items =[]
-        self.__recebe = self.recebe
+        self._recebe = self.recebe
     def recebe(self,elemento):
         elemento.move(self,self.x,self.y)
         self.recebe = self._nem_recebe
@@ -62,7 +62,7 @@ class Passagem(Local):
     def devolve(self,elemento):
         self.items.remove(elemento)
         assert not self.items, 'items left! %s'%str(self.items)
-        self.recebe= self.__recebe
+        self.recebe= self._recebe
     def move(self,local,x,y):
         pass
     def adentra(self,elemento):
@@ -90,20 +90,12 @@ class Porto(Passagem):
         self.items.remove(elemento)
         self.via.apura()
       
-class Passageiro(Local):
-    def _inicia(self):
-        self.local = NENHURES
-        self.items =[]
-        self.do_move = self.__no_move
+class Passageiro(Passagem):
     def entra(self,destino):
         destino.recebe(self)
         self.local.devolve(self)
     def age(self):
-        self.do_move = self.move
         self.local.envia(self)
-        self.do_move = self.__no_move
-    def __no_move(self,local,x,y):
-        pass
     def move(self,local,x,y):
         self.local.devolve(self)
         self.local = local
@@ -114,26 +106,12 @@ class Passageiro(Local):
     def ajusta(self,x,y):
         self.x += x
         self.y += y
-    def devolve(self,elemento):
-        pass
-    def adentra(self,elemento):
-        pass
     
 class Lobo(Passageiro):pass
 class Ovelha(Passageiro):pass
 class Couve(Passageiro):pass
 
-class Barco(Passageiro):#,Passagem):
-    def recebe(self,elemento):
-        elemento.move(self,self.x,self.y)
-        self.items.append(elemento)
-        self.__recebe, self.recebe= self.recebe, self._nem_recebe
-    def _nem_recebe(self,elemento):
-        pass
-    def devolve(self,elemento):
-        assert isinstance(elemento, Passageiro), 'Instead retrieved %s'%str(elemento)
-        self.items.remove(elemento)
-        self.recebe= self.__recebe
+class Barco(Passageiro):
     def envia(self,elemento):
         self.local.via.recebe(elemento)
     pass
