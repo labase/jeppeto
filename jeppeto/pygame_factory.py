@@ -23,6 +23,12 @@ from pygame.color import Color as CL
 from pygame.sprite import Sprite
 from pygame.sprite import LayeredUpdates as Renderer
 from pygame.sprite import RenderUpdates as Camada
+import logging
+
+logger = logging.getLogger('myapp')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+
 
 try:
     import android
@@ -78,11 +84,12 @@ class HandleEvent(dict):
             self.gui.terminate()
             return True
     def KEYUP(self, event): pass
-    def MOUSEMOTION(self, event): pass
+    def MOUSEMOTION(self, event):
+        self.gui.do_drag(event)
     def MOUSEBUTTONUP(self, event):
-        self.gui.do_down(event)
         self.gui.do_up(event)
-    def MOUSEBUTTONDOWN(self, event): pass
+    def MOUSEBUTTONDOWN(self, event):
+        self.gui.do_down(event)
     def JOYAXISMOTION(self, event): pass
     def JOYBALLMOTION(self, event): pass
     def JOYHATMOTION(self, event): pass
@@ -186,20 +193,24 @@ class Empacotador(Sprite):
     EBUFF = None
     MESTRE = Renderer()
     IMAGES = {}
-    def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None):
-        self.create(source, x, y ,w , h, l , f, buff)
-    def create(self, source, x, y ,w , h, l = None, f= None, buff= None):
+    def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None, cl='#FFFFFF'):
+        self.create(source, x, y ,w , h, l , f, buff, cl)
+    def create(self, source, x, y ,w , h, l = None, f= None, buff= None, cl= None):
         Sprite.__init__(self)
         self.name = image = source
-        if image not in Empacotador.IMAGES:
-            if f:
-                graphic = pygame.image.load(buff).convert()
+        if image:
+            if image not in Empacotador.IMAGES:
+                if f:
+                    graphic = pygame.image.load(buff).convert()
+                else:
+                    graphic = pygame.image.load("image/%s"%image).convert()
+                Empacotador.IMAGES[image] = graphic
             else:
-                graphic = pygame.image.load("image/%s"%image).convert()
-            Empacotador.IMAGES[image] = graphic
+                graphic = Empacotador.IMAGES[image]
+            graphic = pygame.transform.scale(graphic, (w, h))
         else:
-            graphic = Empacotador.IMAGES[image]
-        graphic = pygame.transform.scale(graphic, (w, h))
+            graphic = pygame.Surface([w, h])
+            graphic.fill(CL(cl))
         self.image = graphic
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
@@ -215,6 +226,11 @@ class Empacotador(Sprite):
         self.rect.topleft = (x,y)
     def pos(self):
         return self.rect.topleft
+    def scale(self,w,h):
+        tl = self.rect.topleft
+        self.image = pygame.transform.scale(self.image, (w, h))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = tl
     def translate(self,x,y):
         ox, oy = self.rect.topleft
         self.rect.topleft = (ox+x,oy+y)
@@ -246,6 +262,7 @@ class GUI:
         self.click_listeners = []
         self.do_up = self._do_up
         self.do_down = self._do_down #self._do_nothing
+        self.do_drag = self._do_nothing
     
         # Set the screen size.
         self.tela = pygame.display.set_mode((CANVASW, CANVASH))
@@ -266,19 +283,28 @@ class GUI:
         HandleEvent(self).loop()
     def _do_nothing(self, ev):
         pass
+    def _do_drag(self, ev):
+        #self.do_down = self._do_nothing
+        self.last = self.tela.copy()
+        #self.do_up = self._do_drop
     def _do_down(self, ev):
         self.do_down = self._do_nothing
+        self.do_drag = self._do_drag
         self.last = self.tela.copy()
         self.do_up = self._do_up
+    def _do_drop(self, ev):
+        self.do_up = self._do_nothing
+        self.do_down = self._do_down
+        self.do_drag = self._do_nothing
     def _do_up(self, ev):
         self.do_up = self._do_nothing
         self.do_down = self._do_down
         #print ev.button, self.listeners
         if ev.button == 1:
             for item in self.click_listeners:
-                print item.action
+                logger.info( item.action)
                 if item.collide(*ev.pos):
-                    print ev.pos
+                    logger.info( ev.pos)
                     if item.action(*ev.pos):
                         break
         
@@ -293,12 +319,12 @@ class GUI:
         label = self.font.render(texto, 1, COLOR[color])
         self.buffer.blit(label, (x,y))
         return label
-    def rect(self,x,y,w,h,color='navajo white', hexcolor=None):
-        obj = pygame.draw.rect(self.buffer, hexcolor and CL(hexcolor) or COLOR[color], (x,y,w,h))
+    def rect(self,x,y,w,h,color='navajo white', hexcolor=None, buff=None):
+        obj = pygame.draw.rect(buff or self.buffer, hexcolor and CL(hexcolor) or COLOR[color], (x,y,w,h))
         return obj
 
-    def image(self,source,x,y,w,h, l=None, f=None, buff= None):
-        return Empacotador(source,x,y,w,h, l, f, buff)
+    def image(self,source,x,y,w,h, l=None, f=None, buff= None, cl= None):
+        return Empacotador(source,x,y,w,h, l, f, buff, cl)
     def icon(self):#,source,x,y,w,h, l=None, f=None, buff= None):
         #menu = Menu(source,x,y,w,h, l, f, buff)
         Menu.MBUFF = self.buffer.copy()#self.last #self.tela.copy()

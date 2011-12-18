@@ -24,20 +24,30 @@ class Composite(Item):
     """
     def create(self):
         self.items =[]
-        self.activate = self._no_click
+        #self.activate = self._no_click
         return self.icon
     def _click(self,x,y):
         
-        x,y = self.xy = (x,y)
-        print 'self.xy x, y = ',self.xy, self
-        color = x% 256 *256*256 + y% 256*256  +(x*y)% 256
-        icon = self.gui.rect( x,y,50, 50,hexcolor='#%06x'%color)
-        self.items.append(Composite(self.gui,self,icon))
+        color = x*17% 256 *256*256 + y*19% 256*256  +(x*y*13)% 256
         self.reshape(x,y)
+        icon = self.gui.image( None,x,y,50, 50, cl = '#%06x'%color)
+        #self.gui.rect( x,y,50, 50,hexcolor='#%06x'%color, buff = icon.image)
+        #icon = self.gui.rect( x,y,50, 50,hexcolor='#%06x'%color)
+        #icon.move_ip(20,20)
+        comp = Composite(self.gui,self,icon)
+        comp.xy, comp.size = (x,y), (50,50)
+        comp.color = color
+        print 'comp.xy x, y = ',comp.xy, self
+        self.items.append(comp)
         return True
     def reshape(self,x,y):
-        self.avatar.inflate(50,50)
+        print 'inflating', self.avatar
         self.container.reshape(x,y)
+        x,y = self.xy
+        w,h = self.size
+        self.size = (w+50, h+50)
+        self.avatar.scale(w+50,h+50)
+        #self.avatar = self.gui.rect( x,y,w+50, h+50,hexcolor=self.color)
     def n_click_template(self,x,y):
         self.activate = self._no_click
         self._click(x, y)

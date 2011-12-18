@@ -19,12 +19,30 @@ __date__    = "2011/09/09 $Date$"
 
 
 class ClickDecorator:
-    def __init__(self, object, action = None):
-        self.action = action
+    def __init__(self, object, action = None, start = None, stop = None):
+        self.action = action or self._no_action
+        self.start = start or self._no_action
+        self.stop = stop or self._no_action
         self.object = object
-        object.gui.click(self)
+        self._action()
+    def _action(self):
+        self.object.gui.click(self)
+    def _no_action(self, *args):
+        pass
+    def avatar(self):
+        return self.object.avatar#.avatar
     def collide(self,x,y):
+        #self.object.gui.talk('collide %s %s'%(x,y))
         return self.object.avatar.collidepoint(x,y)
+
+class DragDecorator(ClickDecorator):
+    def _action(self):
+        self.object.gui.dragg(self)
+
+class DropDecorator(ClickDecorator):
+    def _action(self):
+        self.object.gui.drop(self)
+        
 
 class GuiObject:#(list):
     def __init__(self, gui, container = None, icon = None, action = None):
