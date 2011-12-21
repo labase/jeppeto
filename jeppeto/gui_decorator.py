@@ -28,7 +28,7 @@ class ClickDecorator:
     def _action(self):
         self.object.gui.click(self)
     def _no_action(self, *args):
-        pass
+        return True
     def avatar(self):
         return self.object.avatar#.avatar
     def collide(self,x,y):

@@ -1,0 +1,4 @@
+title=Jeppeto
+author=Carlo E. T. Oliveira
+api=1
+orientation=landscape

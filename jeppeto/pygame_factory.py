@@ -27,11 +27,12 @@ import logging
 
 logger = logging.getLogger('myapp')
 logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.CRITICAL)
 
 
 try:
     import android
+    android.init()
 except ImportError:
     android = None
 from time import time
@@ -46,7 +47,7 @@ TIMEREVENT = pygame.USEREVENT
 
 # The FPS the game runs at.
 FPS = 8
-CANVASW, CANVASH = 800, 600
+CANVASW, CANVASH = 800, 480
 COLOR={'forest green':'#228B22' , 'navajo white':'#FFDFB0', 'white':'#FFFFFF'
         ,'darksalmon':'#E9967A', 'peachpuff':'#FFDAB9', 'maroon':'#800000'
         ,'lightsalmon':'#FFA07A', 'saddlebrown':'#8B4513'
@@ -80,7 +81,7 @@ class HandleEvent(dict):
         return True
     def ACTIVEEVENT(self, event): pass
     def KEYDOWN(self, event):
-        if ev.key in (pygame.K_ESCAPE,'q',4):
+        if event.key in (pygame.K_ESCAPE,'q',4):
             self.gui.terminate()
             return True
     def KEYUP(self, event): pass
@@ -260,6 +261,8 @@ class GUI:
         pygame.init()
         self.font = pygame.font.Font('freesansbold.ttf', 30)
         self.click_listeners = []
+        self.drag_listeners = []
+        self.drop_listeners = []
         self.do_up = self._do_up
         self.do_down = self._do_down #self._do_nothing
         self.do_drag = self._do_nothing
@@ -286,27 +289,52 @@ class GUI:
     def _do_drag(self, ev):
         #self.do_down = self._do_nothing
         self.last = self.tela.copy()
-        #self.do_up = self._do_drop
+        self.mover.action(*ev.pos)
+        self.do_up = self._do_drop
+        #self._redraw()
+    def _do_move(self, ev):
+        self.mover.action(*ev.pos)
+    def action(self, ev):
+        pass
+    def _do_drop(self, ev):
+        logger.info("end moving: %d , %d", *ev.pos)
+        self.do_up = self.do_drag = self.do_drop = self._do_nothing
+        if ev.button == 1:
+            for item in self.drop_listeners:
+                print item.action
+                if item.collide(*ev.pos):
+                    par = ( ev.pos[0], ev.pos[1], self.mover.object )
+                    print 'drop collision ', ev.pos
+                    if item.action(*par ): break
+        self.mover = self
+        self.do_down = self._do_down
     def _do_down(self, ev):
         self.do_down = self._do_nothing
-        self.do_drag = self._do_drag
         self.last = self.tela.copy()
         self.do_up = self._do_up
-    def _do_drop(self, ev):
-        self.do_up = self._do_nothing
-        self.do_down = self._do_down
-        self.do_drag = self._do_nothing
-    def _do_up(self, ev):
-        self.do_up = self._do_nothing
-        self.do_down = self._do_down
-        #print ev.button, self.listeners
+        self.item = lambda: None
         if ev.button == 1:
             for item in self.click_listeners:
-                logger.info( item.action)
+                #logger.info( item.action)
                 if item.collide(*ev.pos):
-                    logger.info( ev.pos)
-                    if item.action(*ev.pos):
+                    #logger.info( ev.pos)
+                    if item.start(*ev.pos):
+                        self.item = lambda: item.action(*ev.pos)
+                        for drag_item in self.drag_listeners:
+                            if drag_item.object is item.object:
+                                self.do_drag = self._do_drag
+                                drag_item.start(*ev.pos)
+                                logger.info("to drag: %d , %d", *ev.pos)
+                                self.mover = drag_item
+                                self.do_move = self._do_move
+                                break
                         break
+    def _do_up(self, ev):
+        self.do_up = self.do_drag = self.do_drop = self._do_nothing
+        self.do_down = self._do_down
+        self.mover = self
+        #print ev.button, self.listeners
+        self.item()
         
     def _redraw(self):
         rectlist = Empacotador.clear(self.buffer)
@@ -329,6 +357,12 @@ class GUI:
         #menu = Menu(source,x,y,w,h, l, f, buff)
         Menu.MBUFF = self.buffer.copy()#self.last #self.tela.copy()
         return Menu()#source,x,y,w,h, l, f, buff)
+    def dragg(self, object):
+        self.drag_listeners.insert(0,object)
+        logger.info("to drag listeners: %s", str(object))
+    def drop(self, object):
+        self.drop_listeners.insert(0,object)
+        logger.info("to drop listeners: %s", str(object))
     def click(self, object):
         self.click_listeners.insert(0,object)
     def unclick(self, object):
