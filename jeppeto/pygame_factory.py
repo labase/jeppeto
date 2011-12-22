@@ -215,12 +215,15 @@ class Empacotador(Sprite):
         self.image = graphic
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
-        z = l or y
-        self._add_buff(z)
+        self.z = l or y
+        self._add_buff(self.z)
     def _add_buff(self,z=None):
         Empacotador.MESTRE.add(self,layer = z)
     def remove(self):
-        Empacotador.MESTRE.remove(self)
+        self.translate(-1000,-1000)
+        #Empacotador.MESTRE.remove_internal(self)
+        #Empacotador.MESTRE.remove(self)
+        #Empacotador.MESTRE.remove_sprites_of_layer(self.z)
     def position(self):
         return self.rect.topleft
     def move(self,x,y):
@@ -250,7 +253,7 @@ class Empacotador(Sprite):
     @classmethod
     def init(self):
         buff = pygame.Surface([CANVASW, CANVASH])
-        buff.fill(COLOR['forest green']) #(COLOR['navajo white'])
+        buff.fill(COLOR['navajo white']) #(COLOR['forest green'])
         Empacotador.EBUFF = buff.convert()
 
     def __eq__(self,other): return self.name == other.name
@@ -276,7 +279,7 @@ class GUI:
         pygame.time.set_timer(TIMEREVENT, 1000 / FPS)
 
         self.buffer = pygame.Surface([CANVASW, CANVASH])
-        self.buffer.fill(COLOR['forest green']) #(COLOR['navajo white'])
+        self.buffer.fill(COLOR['navajo white']) #(COLOR['forest green'])
         self.buffer = self.buffer.convert()
     def create_game(self,game,title):
         self.game = game
@@ -343,8 +346,8 @@ class GUI:
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
 
-    def text(self,x,y,texto,color='navajo white'):
-        label = self.font.render(texto, 1, COLOR[color])
+    def text(self,x,y,texto,color='navajo white', hexcolor=None):
+        label = self.font.render(texto, 1,  hexcolor and CL(hexcolor) or COLOR[color])
         self.buffer.blit(label, (x,y))
         return label
     def rect(self,x,y,w,h,color='navajo white', hexcolor=None, buff=None):
@@ -366,8 +369,24 @@ class GUI:
     def click(self, object):
         self.click_listeners.insert(0,object)
     def unclick(self, object):
-        print 'removing'
-        self.click_listeners.remove(object)
+        print 'removing clicker'
+        [self.click_listeners.remove(obj)
+         for obj in self.click_listeners if object is obj.object]
+        self._redraw()
+        self.tela.blit(self.buffer,(0,0))
+        pygame.display.flip()
+        
+    def undrop(self, object):
+        print 'removing dropper'
+        [self.drop_listeners.remove(obj)
+         for obj in self.drop_listeners if object is obj.object]
+        self._redraw()
+        self.tela.blit(self.buffer,(0,0))
+        pygame.display.flip()
+    def undrag(self, object):
+        print 'removing dragger'
+        [self.drag_listeners.remove(obj)
+         for obj in self.drag_listeners if object is obj.object]
         self._redraw()
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()

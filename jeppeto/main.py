@@ -65,16 +65,32 @@ class Composite(Item):
         self._readjust()
     def paste(self,x,y,item):
         if item is self:
-            self.container.reshape(self)
+            #self.container.reshape(self)
             return False
         if not item in self.items:
             item.revert()
             self._create(x,y,item.color)
+        else:
+            self.reshape(item)
+            
+            
+        return True
+    def delete(self):
+        [item.delete() for item in self.items]
+        self.container.remove(self)
+        self.gui.unclick(self)
+        self.gui.undrop(self)
+        self.gui.undrag(self)
+        self.avatar.remove()
+        del self
+    def remove(self,item):
+        self.items.remove(item)
             
         return True
     def _create(self,x,y,color):
         icon = self.gui.image(
             None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = '#%06x'%color)
+        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor='#000000',buff=icon.image)
         comp = Composite(self.gui,self,icon)
         DragDecorator(comp,action=comp._move,start=comp._start,stop=comp.paste)
         DropDecorator(comp,comp.paste)
@@ -95,6 +111,26 @@ class Composite(Item):
         self.avatar.scale(*self.size)
         self.avatar.move(*self.xy)
         self.container.reshape(self)
+class DustBin(Composite):
+    """ Lata de lixo
+    """
+    def create(self):
+        RR=3
+        DropDecorator(self, self.scrap)
+        self.icon = self.gui.image(
+            None, 750, 430, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = '#FFDFB0')
+        self.gui.rect(10,0,20,RR,hexcolor='#A0A0A0',buff=self.icon.image)
+        self.gui.rect(2,RR,BLOCK_SIZE-14,BLOCK_SIZE-14,hexcolor='#A0A0A0',buff=self.icon.image)
+        self.gui.rect(RR+8,RR+4,2,BLOCK_SIZE-24,hexcolor='#FFDFB0',buff=self.icon.image)
+        self.gui.rect(RR+16,RR+4,2,BLOCK_SIZE-24,hexcolor='#FFDFB0',buff=self.icon.image)
+        self.gui.rect(RR+24,RR+4,2,BLOCK_SIZE-24,hexcolor='#FFDFB0',buff=self.icon.image)
+        self.gui.rect(0,RR+4,BLOCK_SIZE,2,hexcolor='#FFDFB0',buff=self.icon.image)
+        self.gui.unclick(self)
+        return self.icon
+    def scrap(self,x,y,item):
+        print "scrapping %s"%item
+        item.delete()
+        return True
 
 class App(Composite):
     """ Engenho de Criação de Jogos educacionais
@@ -103,10 +139,11 @@ class App(Composite):
         self.gui.create_game(self, name)
     def create(self):
         self.items =[]
-        self.xy = self.origin = (50,50)
-        app = self.gui.text(350, 10, 'Jeppeto')
-        self.icon = app = self.gui.image( None,50, 50, 700, 550, cl = '#FFDFB0')
+        self.xy = self.origin = (0,0)
+        app = self.gui.text(350, 10, 'Jeppeto', hexcolor = '#FFDFBF')
+        self.icon = app = self.gui.image( None,0, 0, 750, 600, cl = '#FFDFB6')
         self.activate = self._click
+        comp = DustBin(self.gui,self)
         DropDecorator(self, self.paste)
         return app
     def reshape(self, block):

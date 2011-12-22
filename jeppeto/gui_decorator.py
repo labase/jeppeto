@@ -50,9 +50,9 @@ class GuiObject:#(list):
         self.activate = self._click_template
         self.icon = icon
         self.container = container
+        self.clicker = ClickDecorator(self,self.click)
         self.avatar = self.create()
         self.action = action or self.create_child
-        self.clicker = ClickDecorator(self,self.click)
     def destroy(self):
         self.gui.unclick(self.clicker)
     def create(self):
