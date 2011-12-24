@@ -309,6 +309,7 @@ class GUI:
                     par = ( ev.pos[0], ev.pos[1], self.mover.object )
                     print 'drop collision ', ev.pos
                     if item.action(*par ): break
+        self.mover.stop( ev.pos[0], ev.pos[1], self.mover.object)
         self.mover = self
         self.do_down = self._do_down
     def _do_down(self, ev):
