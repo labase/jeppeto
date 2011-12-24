@@ -25,10 +25,71 @@ BLOCK_SIZE = 50
 BP = BLOCK_PADDING = 10
 X,Y = (0,1)
 
+NENHURES = None
+NINGUEM = None
+NADA = None
+
+class Elemento:
+    """ Um elemento básico do Jogo.
+    """
+    TEMPO = 0
+    def __init__(self, inicial =[]):
+        """ inicia a posição e a imagem
+        """
+        self.local = NENHURES
+        self.items =[]
+        self.agir = self.move
+        self._inicia()
+    def _inicia(self):
+        [inicia() for inicia in inicial]
+    def age(self,*args):
+        self.local.age(self.agir)
+    def move(self,local):
+        local.recebe(self.local.devolve(self))
+    def adentra(self,local):
+        self.local = local
+    def recebe(self,elemento):
+        return local
+    def devolve(self,elemento):
+        return elemento
+       
+class Local(Elemento):
+    """ Um local onde se pode colocar Elementos
+    """
+    def recebe(self,elemento):
+        if not elemento in self.items:
+            self.items.append(elemento)
+            elemento.adentra(self)
+    def devolve(self,elemento):
+        self.items.remove(elemento)
+        return elemento
+
+class Portal(Elemento):
+    """ Um portal de passagens entre locais
+    """
+    def _inicia(self):
+        self.de = NENHURES
+        self.para = NENHURES
+        [inicia() for inicia in inicial]
+    def recebe(self,elemento):
+        [item.recebe(elemento) for item in self.items]
+        return self
+    def devolve(self,elemento):
+        return elemento
+
+class Atividade(Elemento):
+    """ Um comportamento que pode ser atribuido a um elemento ou local
+    """
+    def _inicia(self):
+        pass
+
+
 class Composite(Item):
     """ Um item composto
     """
     def create(self):
+        self.xy = self.origin = (0,0)
+        self.size = (BLOCK_SIZE,BLOCK_SIZE)
         self.items =[]
         self._readjust()
         return self.icon
@@ -69,7 +130,7 @@ class Composite(Item):
             return False
         if not item in self.items:
             item.revert()
-            self._create(x,y,item.color)
+            self._create(x,y,comp = item.clone(x,y, owner = self))
         else:
             self.reshape(item)
             
@@ -87,18 +148,24 @@ class Composite(Item):
         self.items.remove(item)
             
         return True
-    def _create(self,x,y,color):
-        icon = self.gui.image(
-            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = '#%06x'%color)
-        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor='#000000',buff=icon.image)
-        comp = Composite(self.gui,self,icon)
+    def clone(self,x,y,color=None, owner = None):
+        thecolor = color or self.color
+        comp = self.stereotype(x,y,thecolor,owner)
         DragDecorator(comp,action=comp._move,start=comp._start,stop=comp.paste)
         DropDecorator(comp,comp.paste)
         comp.origin, comp.xy, comp.size = (x,y), (x,y),(BLOCK_SIZE,)* 2
-        comp.color = color
-        #print 'comp.xy x, y = ',comp.xy, self
+        comp.color = thecolor
+        return comp
+    def _create(self,x,y,color = 0xFFFFFF, comp = None):
+        comp = comp or self.clone(x,y,color)
         self.items.append(comp)
         self.reshape(comp)
+    def stereotype(self,x,y,thecolor, owner = None):
+        icon = self.gui.image(
+            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = '#%06x'%thecolor)
+        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor='#000000',buff=icon.image)
+        return Composite(self.gui,owner or self,icon)
+        
     def reshape(self,block):
         x,y = self.xy
         w,h = self.size
@@ -111,6 +178,71 @@ class Composite(Item):
         self.avatar.scale(*self.size)
         self.avatar.move(*self.xy)
         self.container.reshape(self)
+class _Nada(Composite):
+    def __init__(self):pass
+    def _readjust(self):pass
+    def devolve(self,elemento): pass
+    def reshape(self,block): pass
+    def adjust(self,x,y): pass
+    def __call__(self):
+        return self
+        
+NADA = _Nada()
+del _Nada
+
+class Locus(Composite,Local):
+    """ Local
+    def create(self):
+        DragDecorator(self,action=self._move,start=self._start,stop=self.paste)
+        self.stereotype(750, 200,self.icon, self.container)
+        #self.gui.unclick(self)
+        self.items =[]
+        self._readjust()
+        return self.icon
+    """
+    def stereotype(self,x,y,icon, owner = None):
+        self.color = 0xFFAAAA
+        self.icon = self.gui.image(
+            None, x, y, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = '#%06x'%self.color)
+        self.gui.rect(0,0,2,BLOCK_SIZE,hexcolor='#000000',buff=self.icon.image)
+        container = owner or self.container
+        return  Locus(self.gui, container, self.icon)
+    '''
+    def _start(self,x,y):
+        print '>>',
+        self.origin = self.xy = self.avatar.pos()
+        return True
+    def _move(self,x,y):
+        self.avatar.move(x,y)
+        self.xy = (self.avatar.pos())
+    def revert(self):
+        self._move(*self.origin)
+    '''
+    def _click(self,x,y):
+        pass
+class Port(Locus,Portal):
+    """ Portal
+    """
+    def create(self):
+        DragDecorator(self,action=self._move,start=self._start,stop=self.paste)
+        self.stereotype(750, 250, self.icon, self)
+        #self.gui.unclick(self)
+        self.xy = self.origin = (750, 250)
+        self.size = (BLOCK_SIZE-10,BLOCK_SIZE-10)
+        self.items =[]
+        self._readjust()
+        return self.icon
+    def stereotype(self,x,y,icon, owner = None):
+        self.color = 0xAAAAFF
+        self.icon = self.gui.image(
+            None, x, y, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = '#%06x'%self.color)
+        self.gui.rect(BLOCK_SIZE-12,0,2,BLOCK_SIZE,hexcolor='#000000',buff=self.icon.image)
+        self.container = NADA #owner or self
+        comp = owner or Composite(self.gui, self.container, self.icon)
+        return comp
+    """
+    """
+
 class DustBin(Composite):
     """ Lata de lixo
     """
@@ -144,10 +276,15 @@ class App(Composite):
         self.icon = app = self.gui.image( None,0, 0, 750, 600, cl = '#FFDFB6')
         self.activate = self._click
         comp = DustBin(self.gui,self)
+        #loc = Locus(self.gui,self,self.icon)._create(750, 250)
+        por = Port(self.gui,self,self.icon)#._create(750, 200)
+        #por = self._create(750, 200)
         DropDecorator(self, self.paste)
         return app
     def reshape(self, block):
         return (0,0)
+    #def paste(self,x,y,item):
+    #    item.revert()
 def main():
     from pygame_factory import GUI
     main = App(GUI())
