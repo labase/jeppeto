@@ -212,7 +212,7 @@ class Empacotador(Sprite):
         else:
             graphic = pygame.Surface([w, h])
             graphic.fill(CL(cl))
-        self.image = graphic
+        self.image, self.color = graphic, cl
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.z = l or y

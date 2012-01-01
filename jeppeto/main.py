@@ -20,7 +20,10 @@ __date__    = "2011/12/12 $Date$"
 from gui_decorator import Item, DragDecorator, DropDecorator
 
 PRIMESXYZ = (5,11,111)
-WHITE = 256
+SATURATE = 256
+
+HEX6 = '#%06x'
+BLACK, WHITE , GREY , NAVWHITE ='#000000', '#FFFFFF', '#A0A0A0', '#FFDFB0'
 BLOCK_SIZE = 50
 BP = BLOCK_PADDING = 10
 X,Y = (0,1)
@@ -94,8 +97,8 @@ class Atividade(Elemento):
         pass
 
 
-class Composite(Item):
-    """ Um item composto
+class BlockItem(Item):
+    """ Um bloco que arrasta e solta
     """
     def create(self):
         self.xy = self.origin = (0,0)
@@ -105,12 +108,6 @@ class Composite(Item):
         return self.icon
     def _noaction(self,*args):
         return False
-    def _colour(self,x,y):
-        xyz = zip ((x,y,x*y), PRIMESXYZ, (2,1,0))
-        return sum((ord * prime) % WHITE * WHITE**axis for ord, prime, axis in xyz)
-    def _click(self,x,y):
-        self.origin = self.xy
-        self._create(x,y,self._colour(x,y))
     def translate(self,dx,dy):
         self.avatar.translate(dx,dy)
         self.xy = self.icon.pos()
@@ -119,25 +116,12 @@ class Composite(Item):
         self._move(*self.origin)
         [item.revert() for item in self.items]
     def _start(self,x,y):
-        print '>>',
         self.origin = self.xy = self.avatar.pos()
         [item._start(x,y) for item in self.items]
         return True
     def _move(self,x,y):
-        print '.',
         dx, dy = x - self.xy[X], y - self.xy[Y]
         self.translate(dx, dy)
-    def paste(self,x,y,item):
-        if item is self:
-            #self.container.reshape(self)
-            return False
-        if not item in self.items:
-            item.revert()
-            self._create(x,y,comp = item.clone(x,y, owner = self))
-            pass
-        else:
-            self.reshape(item)
-        return True
 
     def delete(self):
         [item.delete() for item in self.items]
@@ -150,27 +134,6 @@ class Composite(Item):
     def remove(self,item):
         self.items.remove(item)
         return True
-    def clone_contents(self,x,y):
-        return self._colour(x,y)
-
-    def clone(self,x,y,color=None, owner = None):
-        thecolor = color or self.clone_contents(x,y)
-        comp = self.stereotype(x,y,thecolor,owner)
-        DragDecorator(comp,action=comp._move,start=comp._start,stop=comp.paste)
-        DropDecorator(comp,comp.paste)
-        comp.origin, comp.xy, comp.size = (x,y), (x,y),(BLOCK_SIZE,)* 2
-        comp.color = thecolor
-        return comp
-    def _create(self,x,y,color = 0xFFFFFF, comp = None):
-        comp = comp or self.clone(x,y,color)
-        self.items.append(comp)
-        self.reshape(comp)
-    def stereotype(self,x,y,color, owner = None, it = None, icon = None):
-        icon = self.gui.image(
-            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = '#%06x'%color)
-        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor='#000000',buff=icon.image)
-        return Composite(self.gui,owner or self,icon)
-        
     def reshape(self,block):
         x,y = self.xy
         w,h = self.size
@@ -183,32 +146,84 @@ class Composite(Item):
         self.avatar.scale(*self.size)
         self.avatar.move(*self.xy)
         self.container.reshape(self)
+        
+class Composite(BlockItem):
+    """ Um item composto
+    """
+    def _click(self,x,y):
+        self.origin = self.xy
+        self._create(x,y)
+    def _create(self,x,y, comp = None):
+        comp = comp or self.spawn(x,y,self._colour(x,y))
+        self.items.append(comp)
+        self.reshape(comp)
+    def paste(self,x,y,item):
+        if item is self:
+            return False
+        if not item in self.items:
+            item.revert()
+            self._create(x,y,comp = item.clone(x,y, owner = self))
+            pass
+        else:
+            self.reshape(item)
+        return True
+        
+    def _colour(self,x,y):
+        xyz = zip ((x,y,x*y), PRIMESXYZ, (2,1,0))
+        return sum((ord * prime) % SATURATE * SATURATE**axis
+            for ord, prime, axis in xyz)
+    def spawn(self,x,y, color= None, owner = None):
+        color = color or self.clone_contents(x,y)
+        comp = self.factory(self.stereotype(x,y,color), owner)
+        return self._spawn(x,y,comp,color)
+    def _spawn(self,x,y,comp,color):
+        DragDecorator(comp,action=comp._move,start=comp._start,stop=comp.paste)
+        DropDecorator(comp,comp.paste)
+        comp.origin, comp.xy, comp.size = (x,y), (x,y),(BLOCK_SIZE,)* 2
+        comp.color = color
+        return comp
+    def clone(self,x,y,color=None, owner = None):
+        color = color or self.clone_contents(x,y)
+        comp = Reference(self.factory(self.stereotype(x,y,color), owner))
+        return self._spawn(x,y,comp,color)
+    def clone_contents(self,x,y):
+        return self._colour(x,y)
+    def factory(self, icon, owner = None):
+        return Composite(self.gui,owner or self,icon)
+
+    def stereotype(self,x,y,color):
+        icon = self.gui.image(
+            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = HEX6%color)
+        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor=BLACK,buff=icon.image)
+        return icon
 
 class Locus(Composite,Local):
     """ Portal
     """
-    def stereotype(self,x,y,color, owner = None, it = None, icon = None):
-        icon =  icon or  self.gui.image(
-            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = '#%06x'%color)
-        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor='#000000',buff=icon.image)
-        return  it or Locus(self.gui,owner or self,icon)
+    def stereotype(self,x,y,color):
+        icon =  self.gui.image(
+            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = HEX6%color)
+        self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor=BLACK,buff=icon.image)
+        return  icon
+    def factory(self, icon, owner = None):
+        return Locus(self.gui,owner or self,icon)
 
     def clone_contents(self,x,y):
         return self.color or self._colour(x,y)
 class Actor(Composite, Elemento):
     """ Actor
     """
-    def stereotype(self,x,y,color, owner = None, it = None, icon = None):
+    def stereotype(self,x,y,color):
         #color = 0xAAAAFF
         BLOCK = BLOCK_SIZE
-        icon = icon or self.gui.image(
-            None, x, y, BLOCK, BLOCK, cl = '#%06x'%color)
-        self.gui.rect(0,BLOCK-2,BLOCK_SIZE,2,hexcolor='#000000',buff=icon.image)
+        icon = self.gui.image(
+            None, x, y, BLOCK, BLOCK, cl = HEX6%color)
+        self.gui.rect(0,BLOCK-2,BLOCK_SIZE,2,hexcolor=BLACK,buff=icon.image)
         self.gui.rect(BLOCK//3,BLOCK-4,BLOCK//3,2,
-                      hexcolor='#000000',buff=icon.image)
-        container = owner or self.container
-        comp = it or Actor(self.gui, container, icon)
-        return comp
+                      hexcolor=BLACK,buff=icon.image)
+        return  icon
+    def factory(self, icon, owner = None):
+        return Actor(self.gui,owner or self,icon)
     def _click(self,x,y):
         pass
     def clone_contents(self,x,y):
@@ -217,22 +232,41 @@ class Actor(Composite, Elemento):
 class Port(Actor,Portal):
     """ Portal
     """
-    def stereotype(self,x,y,color, owner = None, it = None, icon = None):
-        #color = 0xAAAAFF
-        icon = icon or self.gui.image(
-            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = '#%06x'%color)
-        self.gui.rect(BLOCK_SIZE-2,0,2,BLOCK_SIZE,hexcolor='#000000',buff=icon.image)
-        container = owner or self.container
-        comp = it or Port(self.gui, container, icon)
-        return comp
+    def stereotype(self,x,y,color):
+        icon = self.gui.image(
+            None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = HEX6%color)
+        self.gui.rect(BLOCK_SIZE-2,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=icon.image)
+        return  icon
+    def factory(self, icon, owner = None):
+        return Port(self.gui,owner or self,icon)
 
+class Reference(Composite):
+    """ Portal
+    """
+    def __init__(self, referee):
+        self.referee = referee
+        Composite.__init__(self,referee.gui,referee.container,referee.icon)
+        self.gui.rect(0,0,4,4,hexcolor=BLACK,buff=self.icon.image)
+        self.gui.rect(1,1,2,2,hexcolor=WHITE,buff=self.icon.image)
+        #self.color = referee.color
+    def stereotype(self,x,y,color):
+        icon = self.referee.stereotype(x,y,self.referee.color)
+        self.gui.rect(0,0,4,4,hexcolor=WHITE,buff=icon.image)
+        return icon
+    def clone(self,x,y,color=None, owner = None):
+        ref = self.referee
+        thecolor = int(ref.icon.color[1:],16) #>>> fix, get color from Composite
+        comp = Reference(ref.factory(ref.stereotype(x,y,thecolor), owner))
+        return self._spawn(x,y,comp,color)
+    
 class Tool():
     """ Tool
     """
     def paste(self,x,y,item):
-        print 'tool reverting'
         item.revert()
     def delete(self):pass
+    def clone(self,x,y,color=None, owner = None):
+        return self.spawn(x,y,color,owner = owner)
     
 class ToolActor(Tool,Actor):
     """ Ferramenta de Portal
@@ -243,11 +277,12 @@ class ToolActor(Tool,Actor):
         self.color = None
         BLOCK = BLOCK_SIZE-10
         self.icon = self.gui.image(
-            None, 750, 200, BLOCK, BLOCK, cl = '#%06x'%self.colorz)
-        self.gui.rect(0,BLOCK-1,BLOCK_SIZE,2,hexcolor='#000000',buff=self.icon.image)
+            None, 750, 200, BLOCK, BLOCK, cl = HEX6%self.colorz)
+        self.gui.rect(0,BLOCK-1,BLOCK_SIZE,2,hexcolor=BLACK,buff=self.icon.image)
         self.gui.rect(BLOCK//3,BLOCK-2,BLOCK//3,2,
-                      hexcolor='#000000',buff=self.icon.image)
-        self.stereotype(750, 200, self.colorz, icon = self.icon, it = self)
+                      hexcolor=BLACK,buff=self.icon.image)
+        self.xy = self.origin = (0,0)
+        self.size = (BLOCK,BLOCK)
         self.items =[]
         return self.icon
     
@@ -258,10 +293,12 @@ class ToolPort(Tool,Port):
         DragDecorator(self,action=self._move,start=self._start,stop=self.paste)
         self.colorz = 0xAAAAFF
         self.color = None
+        BLOCK = BLOCK_SIZE-10
         self.icon = self.gui.image(
-            None, 750, 250, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = '#%06x'%self.colorz)
-        self.gui.rect(BLOCK_SIZE-12,0,2,BLOCK_SIZE,hexcolor='#000000',buff=self.icon.image)
-        self.stereotype(750, 250, self.colorz, icon = self.icon, it = self)
+            None, 750, 250, BLOCK, BLOCK, cl = HEX6%self.colorz)
+        self.gui.rect(BLOCK_SIZE-12,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=self.icon.image)
+        self.xy = self.origin = (0,0)
+        self.size = (BLOCK,BLOCK)
         self.items =[]
         return self.icon
     
@@ -273,9 +310,8 @@ class ToolLocus(Tool,Locus):
         DragDecorator(self,action=self._move,start=self._start,stop=self.paste)
         self.color = 0xFFAAAA
         self.icon = self.gui.image(
-            None, 750, 200, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = '#%06x'%self.color)
-        self.gui.rect(0,0,2,BLOCK_SIZE,hexcolor='#000000',buff=self.icon.image)
-        self.stereotype(750, 200, self.color, icon = self.icon, it = self)
+            None, 750, 200, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = HEX6%self.color)
+        self.gui.rect(0,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=self.icon.image)
         self.items =[]
         return self.icon
 
@@ -286,13 +322,13 @@ class DustBin(Composite):
         RR=3
         DropDecorator(self, self.scrap)
         self.icon = self.gui.image(
-            None, 750, 430, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = '#FFDFB0')
-        self.gui.rect(10,0,20,RR,hexcolor='#A0A0A0',buff=self.icon.image)
-        self.gui.rect(2,RR,BLOCK_SIZE-14,BLOCK_SIZE-14,hexcolor='#A0A0A0',buff=self.icon.image)
-        self.gui.rect(RR+8,RR+4,2,BLOCK_SIZE-24,hexcolor='#FFDFB0',buff=self.icon.image)
-        self.gui.rect(RR+16,RR+4,2,BLOCK_SIZE-24,hexcolor='#FFDFB0',buff=self.icon.image)
-        self.gui.rect(RR+24,RR+4,2,BLOCK_SIZE-24,hexcolor='#FFDFB0',buff=self.icon.image)
-        self.gui.rect(0,RR+4,BLOCK_SIZE,2,hexcolor='#FFDFB0',buff=self.icon.image)
+            None, 750, 430, BLOCK_SIZE-10, BLOCK_SIZE-10, cl = NAVWHITE)
+        self.gui.rect(10,0,20,RR,hexcolor=GREY,buff=self.icon.image)
+        self.gui.rect(2,RR,BLOCK_SIZE-14,BLOCK_SIZE-14,hexcolor=GREY,buff=self.icon.image)
+        self.gui.rect(RR+8,RR+4,2,BLOCK_SIZE-24,hexcolor=NAVWHITE,buff=self.icon.image)
+        self.gui.rect(RR+16,RR+4,2,BLOCK_SIZE-24,hexcolor=NAVWHITE,buff=self.icon.image)
+        self.gui.rect(RR+24,RR+4,2,BLOCK_SIZE-24,hexcolor=NAVWHITE,buff=self.icon.image)
+        self.gui.rect(0,RR+4,BLOCK_SIZE,2,hexcolor=NAVWHITE,buff=self.icon.image)
         self.gui.unclick(self)
         return self.icon
     def scrap(self,x,y,item):
@@ -300,7 +336,7 @@ class DustBin(Composite):
         item.delete()
         return True
 
-class App(ToolLocus):
+class App(Locus):
     """ Engenho de Criação de Jogos educacionais
     """
     def start(self, name):
@@ -319,13 +355,16 @@ class App(ToolLocus):
         por = ToolPort(self.gui,self)
         DropDecorator(self, self.paste)
         return app
-    def _create(self,x,y,color = 0xFFFFFF, comp = None):
-        comp = self.clone(x,y,None)
+    def _create(self,x,y,comp = None):
+        comp = self.spawn(x,y)
         self.items.append(comp)
     def reshape(self, block):
         return (0,0)
-    #def paste(self,x,y,item):
-    #    item.revert()
+    def paste(self,x,y,item):
+        if item in self.items:
+            return True
+        item.revert()
+        
 def main():
     from pygame_factory import GUI
     main = App(GUI())
