@@ -28,10 +28,28 @@ BLOCK_SIZE = 50
 BP = BLOCK_PADDING = 10
 X,Y = (0,1)
 
-NENHURES = None
-NINGUEM = None
-NADA = None
+class _Nenhures:
+    """ Um elemento básico do Jogo.
+    """
+    TEMPO = 0
+    def age(self,*args):
+        return False
+    def move(self,local):
+        pass
+    def adentra(self,local):
+        pass
+    def recebe(self,elemento):
+        return self
+    def devolve(self,elemento):
+        return self
+    def nada_faz(self, *args):
+        pass
+    def __call__(self):
+        return self
 
+NENHURES = _Nenhures()
+del _Nenhures
+       
 class Elemento:
     """ Um elemento básico do Jogo.
     """
@@ -39,7 +57,7 @@ class Elemento:
     def __init__(self, inicial =[]):
         """ inicia a posição e a imagem
         """
-        self.local = NENHURES
+        self.local = NENHURES()
         self.items =[]
         self.agir = self.move
     def age(self,*args):
@@ -83,7 +101,9 @@ class Portal(Elemento):
     def age(self,*args):
         for item in self.items:
             if item.age(args):
-                break
+                return True
+        else:
+            return False
     def recebe(self,elemento):
         [item.recebe(elemento) for item in self.items]
         return self
@@ -95,7 +115,6 @@ class Atividade(Elemento):
     """
     def _inicia(self):
         pass
-
 
 class BlockItem(Item):
     """ Um bloco que arrasta e solta
@@ -117,6 +136,9 @@ class BlockItem(Item):
         [item.revert() for item in self.items]
     def _start(self,x,y):
         self.origin = self.xy = self.avatar.pos()
+        self.icon.toFront() # ZOrder not working in pygame!
+        #self.icon.translatez(0,1000)
+        #self.icon.translate(*self.origin)
         [item._start(x,y) for item in self.items]
         return True
     def _move(self,x,y):
@@ -181,10 +203,12 @@ class Composite(BlockItem):
         DropDecorator(comp,comp.paste)
         comp.origin, comp.xy, comp.size = (x,y), (x,y),(BLOCK_SIZE,)* 2
         comp.color = color
+        comp.icon.toFront()
+        print 'spawned : %s'%color
         return comp
     def clone(self,x,y,color=None, owner = None):
         color = color or self.clone_contents(x,y)
-        comp = Reference(self.factory(self.stereotype(x,y,color), owner))
+        comp = Reference(self,self.stereotype(x,y,color), owner)
         return self._spawn(x,y,comp,color)
     def clone_contents(self,x,y):
         return self._colour(x,y)
@@ -235,7 +259,7 @@ class Port(Actor,Portal):
     def stereotype(self,x,y,color):
         icon = self.gui.image(
             None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = HEX6%color)
-        self.gui.rect(BLOCK_SIZE-2,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=icon.image)
+        self.gui.rect(0,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=icon.image)
         return  icon
     def factory(self, icon, owner = None):
         return Port(self.gui,owner or self,icon)
@@ -243,20 +267,19 @@ class Port(Actor,Portal):
 class Reference(Composite):
     """ Portal
     """
-    def __init__(self, referee):
+    def __init__(self, referee, icon, owner):
         self.referee = referee
-        Composite.__init__(self,referee.gui,referee.container,referee.icon)
+        Composite.__init__(self,referee.gui,owner,icon)
         self.gui.rect(0,0,4,4,hexcolor=BLACK,buff=self.icon.image)
         self.gui.rect(1,1,2,2,hexcolor=WHITE,buff=self.icon.image)
-        #self.color = referee.color
     def stereotype(self,x,y,color):
         icon = self.referee.stereotype(x,y,self.referee.color)
         self.gui.rect(0,0,4,4,hexcolor=WHITE,buff=icon.image)
         return icon
     def clone(self,x,y,color=None, owner = None):
         ref = self.referee
-        thecolor = int(ref.icon.color[1:],16) #>>> fix, get color from Composite
-        comp = Reference(ref.factory(ref.stereotype(x,y,thecolor), owner))
+        color = ref.color
+        comp = Reference(ref,ref.stereotype(x,y,color), owner)
         return self._spawn(x,y,comp,color)
     
 class Tool():
@@ -296,7 +319,7 @@ class ToolPort(Tool,Port):
         BLOCK = BLOCK_SIZE-10
         self.icon = self.gui.image(
             None, 750, 250, BLOCK, BLOCK, cl = HEX6%self.colorz)
-        self.gui.rect(BLOCK_SIZE-12,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=self.icon.image)
+        self.gui.rect(0,0,2,BLOCK_SIZE,hexcolor=BLACK,buff=self.icon.image)
         self.xy = self.origin = (0,0)
         self.size = (BLOCK,BLOCK)
         self.items =[]

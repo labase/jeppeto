@@ -21,7 +21,7 @@ import pygame
 import pygame as KL
 from pygame.color import Color as CL
 from pygame.sprite import Sprite
-from pygame.sprite import LayeredUpdates as Renderer
+from pygame.sprite import LayeredUpdates as Render
 from pygame.sprite import RenderUpdates as Camada
 import logging
 
@@ -55,6 +55,77 @@ COLOR={'forest green':'#228B22' , 'navajo white':'#FFDFB0', 'white':'#FFFFFF'
 
 COLOR = dict((name,CL(color))for name, color in COLOR.items())
 
+class Renderer(Render):
+    def delete (self,sprite):
+        #self._spritelist.remove(sprite)
+        self.remove(sprite)
+        #self.spritedict.pop(sprite)
+    def remove_internal(self, sprite):
+        """
+        Do not use this method directly. It is used by the group to 
+        add a sprite.
+        """
+        # these dirty rects are suboptimal for one frame
+        self.lostsprites.append(self.spritedict[sprite]) # dirty rect
+        if hasattr(sprite, 'rect'):
+            self.lostsprites.append(sprite.rect) # dirty rect
+        
+        self.spritedict.pop(sprite)
+        self._spritelayers.pop(sprite)
+        [self._spritelist.pop(i) for i, x in enumerate(self._spritelist) if sprite is x]
+
+    def change_layer(self, sprite, new_layer):
+        """changes the layer of the sprite
+        LayeredUpdates.change_layer(sprite, new_layer): return None
+
+        sprite must have been added to the renderer. It is not checked.
+        """
+        sprites = self._spritelist # speedup
+        sprites_layers = self._spritelayers # speedup
+        
+        #sprites.remove(sprite) 
+        sprites_layers.pop(sprite)
+        [self._spritelist.pop(i) for i, x in enumerate(self._spritelist) if sprite is x]
+        
+        # add the sprite at the right position
+        # bisect algorithmus
+        leng = len(sprites)
+        low = 0
+        high = leng-1
+        mid = low
+        while(low<=high):
+            mid = low + (high-low)//2
+            if(sprites_layers[sprites[mid]]<=new_layer):
+                low = mid+1
+            else:
+                high = mid-1
+        # linear search to find final position
+        while(mid<leng and sprites_layers[sprites[mid]]<=new_layer):
+            mid += 1
+        sprites.insert(mid, sprite)
+        if hasattr(sprite, 'layer'):
+            sprite.layer = new_layer
+        
+        # add layer info
+        sprites_layers[sprite] = new_layer
+'''
+        #while(low<=high):
+        #    mid = low + (high-low)//2
+        #    sprites_mid = sprites[mid]
+        #    if (sprites_layers[sprites_mid]<=new_layer):
+        #        low = mid+1
+        #    else:
+        #        high = mid-1
+        # linear search to find final position
+        while(mid<leng and (sprites[mid] in sprites_layers and sprites_layers[sprites[mid]]<=new_layer)):
+            mid += 1
+        sprites.insert(mid, sprite)
+        if hasattr(sprite, 'layer'):
+            sprite.layer = new_layer
+        
+        # add layer info
+        sprites_layers[sprite] = new_layer
+'''
 class HandleEvent(dict):
     def __init__(self,gui):
         self.gui = gui
@@ -196,6 +267,8 @@ class Empacotador(Sprite):
     IMAGES = {}
     def __init__(self, source, x, y ,w , h, l = None, f= None, buff= None, cl='#FFFFFF'):
         self.create(source, x, y ,w , h, l , f, buff, cl)
+    def __repr__(self):
+        return object.__repr__(self)
     def create(self, source, x, y ,w , h, l = None, f= None, buff= None, cl= None):
         Sprite.__init__(self)
         self.name = image = source
@@ -218,12 +291,10 @@ class Empacotador(Sprite):
         self.z = l or y
         self._add_buff(self.z)
     def _add_buff(self,z=None):
+        print 'add buff : %s'%self
         Empacotador.MESTRE.add(self,layer = z)
     def remove(self):
-        self.translate(-1000,-1000)
-        #Empacotador.MESTRE.remove_internal(self)
-        #Empacotador.MESTRE.remove(self)
-        #Empacotador.MESTRE.remove_sprites_of_layer(self.z)
+        Empacotador.MESTRE.delete(self)
     def position(self):
         return self.rect.topleft
     def move(self,x,y):
@@ -238,6 +309,10 @@ class Empacotador(Sprite):
     def translate(self,x,y):
         ox, oy = self.rect.topleft
         self.rect.topleft = (ox+x,oy+y)
+    def toFront(self):
+        Empacotador.MESTRE.move_to_front(self)
+    def toBack(self):
+        Empacotador.MESTRE.move_to_back(self)
     def translatez(self,x,y):
         ox, oy = self.rect.topleft
         self.rect.topleft = (ox+x,oy+y)
