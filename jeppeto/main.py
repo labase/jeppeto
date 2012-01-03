@@ -34,12 +34,17 @@ class _Nenhures:
     TEMPO = 0
     def age(self,*args):
         return False
+    def reage(self,*args):
+        return False
+    def ativa(self,ato):
+        return False
     def move(self,local):
         pass
     def adentra(self,local):
+        return False
         pass
     def recebe(self,elemento):
-        return self
+        return False
     def devolve(self,elemento):
         return self
     def nada_faz(self, *args):
@@ -60,55 +65,80 @@ class Elemento:
         self.local = NENHURES()
         self.items =[]
         self.agir = self.move
-    def age(self,*args):
+    def age(self,ato):
         self._age, self.age = self.age, self.nada_faz
-        self.local.age(self.agir)
+        for item in self.items:
+            if item.reage(ato or self.agir):
+                self.age = self._age
+                return True
+        did = self.local.reage(ato or self.agir)
         self.age = self._age
-        return True
+        return did
+    def ativa(self,ato):
+        return ato(self)
+    def reage(self,ato):
+        return self.local.reage(ato)
     def move(self,local):
-        local.recebe(self.local.devolve(self))
+        return local.recebe(self, self.local.devolve)
     def adentra(self,local):
         self.local = local
-    def recebe(self,elemento):
-        return local
-    def devolve(self,elemento):
-        return elemento
-    def nada_faz(self, *args):
-        pass
-       
-class Local(Elemento):
-    """ Um local onde se pode colocar Elementos
-    """
-    def age(self,*args):
-        for item in self.items:
-            if item.age(args):
-                break
-    def recebe(self,elemento):
+        return True
+    def recebe(self, elemento, ato):
         if not elemento in self.items:
             self.items.append(elemento)
-            elemento.adentra(self)
+            ato(elemento)
+            return elemento.adentra(self)
+        return False
     def devolve(self,elemento):
         self.items.remove(elemento)
         return elemento
+    def nada_faz(self, *args):
+        return False
 
-class Portal(Elemento):
+class Local(Elemento):
+    """ Um local onde se pode colocar Elementos
+    """
+    def reage(self,ato):
+        for item in self.items:
+            if item.age(ato):
+                return True
+        did = self.local.age(ato or self.agir)
+        return did
+    def age(self,ato):
+        return ato(self)
+       
+class Referencia:
+    """ Referencia Um elemento básico do Jogo.
+    """
+    def __init__(self, elemento):
+        """ inicia o elemento de referência
+        """
+        self.elemento = elemento
+    def age(self,ato):
+        return self.elemento.age(ato)
+    def ativa(self,ato):
+        return self.elemento.ativa(ato)
+    def reage(self,ato):
+        return self.elemento.reage(ato)
+    def move(self,local):
+        return self.elemento.move(local)
+    def adentra(self,local):
+        return self.elemento.adentra(local)
+    def recebe(self, elemento, ato):
+        return self.elemento.recebe(elemento, ato)
+    def devolve(self,elemento):
+        return self.elemento.devolve(elemento)
+       
+
+class Portal(Local):
     """ Um portal de passagens entre locais
     """
-    #def _inicia(self):
-    #    self.de = NENHURES
-    #    self.para = NENHURES
-    #    [inicia() for inicia in inicial]
-    def age(self,*args):
+    def age(self,ato):
         for item in self.items:
-            if item.age(args):
+            if item.ativa(ato):
                 return True
         else:
             return False
-    def recebe(self,elemento):
-        [item.recebe(elemento) for item in self.items]
-        return self
-    def devolve(self,elemento):
-        return elemento
 
 class Atividade(Elemento):
     """ Um comportamento que pode ser atribuido a um elemento ou local
@@ -178,6 +208,7 @@ class Composite(BlockItem):
     def _create(self,x,y, comp = None):
         comp = comp or self.spawn(x,y,self._colour(x,y))
         self.items.append(comp)
+        comp.local = self
         self.reshape(comp)
     def paste(self,x,y,item):
         if item is self:
@@ -234,9 +265,20 @@ class Locus(Composite,Local):
 
     def clone_contents(self,x,y):
         return self.color or self._colour(x,y)
+    def recebe(self, elemento, ato):
+        go = Local.recebe(self, elemento, ato)
+        if go:
+            x, y = self.icon.pos()
+            elemento._move(x+BP,y+BP)
+            elemento.container = self
+            self.reshape(elemento)
+        return go
 class Actor(Composite, Elemento):
     """ Actor
     """
+    def create(self):
+        Elemento.__init__(self)
+        return Composite.create(self)
     def stereotype(self,x,y,color):
         #color = 0xAAAAFF
         BLOCK = BLOCK_SIZE
@@ -249,9 +291,13 @@ class Actor(Composite, Elemento):
     def factory(self, icon, owner = None):
         return Actor(self.gui,owner or self,icon)
     def _click(self,x,y):
+        self.age(None)
         pass
     def clone_contents(self,x,y):
         return self.color or self._colour(x,y)
+    def adentra(self, local):
+        self.local = local
+        return True
 
 class Port(Actor,Portal):
     """ Portal
@@ -264,11 +310,12 @@ class Port(Actor,Portal):
     def factory(self, icon, owner = None):
         return Port(self.gui,owner or self,icon)
 
-class Reference(Composite):
+class Reference(Composite,Referencia):
     """ Portal
     """
     def __init__(self, referee, icon, owner):
         self.referee = referee
+        Referencia.__init__(self,referee)
         Composite.__init__(self,referee.gui,owner,icon)
         self.gui.rect(0,0,4,4,hexcolor=BLACK,buff=self.icon.image)
         self.gui.rect(1,1,2,2,hexcolor=WHITE,buff=self.icon.image)
@@ -281,6 +328,8 @@ class Reference(Composite):
         color = ref.color
         comp = Reference(ref,ref.stereotype(x,y,color), owner)
         return self._spawn(x,y,comp,color)
+    def adentra(self,local):
+        pass
     
 class Tool():
     """ Tool
@@ -381,6 +430,7 @@ class App(Locus):
     def _create(self,x,y,comp = None):
         comp = self.spawn(x,y)
         self.items.append(comp)
+        comp.local = NENHURES()
     def reshape(self, block):
         return (0,0)
     def paste(self,x,y,item):
