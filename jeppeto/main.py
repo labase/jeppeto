@@ -38,6 +38,8 @@ class _Nenhures:
         return False
     def ativa(self,ato):
         return False
+    def entra(self,ato):
+        return False
     def move(self,local):
         pass
     def adentra(self,local):
@@ -74,12 +76,17 @@ class Elemento:
         did = self.local.reage(ato or self.agir)
         self.age = self._age
         return did
-    def ativa(self,ato):
+    def _ativa(self,ato):
+        return ato(self)
+    def entra(self,ato):
         return ato(self)
     def reage(self,ato):
         return self.local.reage(ato)
     def move(self,local):
         return local.recebe(self, self.local.devolve)
+    def ativa(self,ato):
+        print 'nao ativa'
+        return False
     def adentra(self,local):
         self.local = local
         return True
@@ -105,7 +112,39 @@ class Local(Elemento):
         did = self.local.age(ato or self.agir)
         return did
     def age(self,ato):
+        print 'local age'
+        #for item in self.items:
+        #    if item.ativa(ato):
+        #        return True
         return ato(self)
+    def ativa(self,ato):
+        print 'ativou'
+    def entra(self,ato):
+        for item in self.items:
+            if item.entra(ato):
+                return True
+        #did = self.local.age(ato or self.agir)
+        #return did
+
+class Portal(Local):
+    """ Um portal de passagens entre locais
+    """
+    def age(self,ato):
+        return False
+    def _age(self,ato):
+        for item in self.items:
+            if item.ativa(ato):
+                return True
+        else:
+            return self.local.ativa(ato)
+            return False
+    def ativa(self,ato):
+        print 'Portal ativou'
+        for item in self.items:
+            if item.entra(ato):
+                return True
+        did = self.local.entra(ato or self.agir)
+        return did
        
 class Referencia:
     """ Referencia Um elemento básico do Jogo.
@@ -114,6 +153,8 @@ class Referencia:
         """ inicia o elemento de referência
         """
         self.elemento = elemento
+    def entra(self,ato):
+        return self.elemento.entra(ato)
     def age(self,ato):
         return self.elemento.age(ato)
     def ativa(self,ato):
@@ -129,16 +170,6 @@ class Referencia:
     def devolve(self,elemento):
         return self.elemento.devolve(elemento)
        
-
-class Portal(Local):
-    """ Um portal de passagens entre locais
-    """
-    def age(self,ato):
-        for item in self.items:
-            if item.ativa(ato):
-                return True
-        else:
-            return False
 
 class Atividade(Elemento):
     """ Um comportamento que pode ser atribuido a um elemento ou local
@@ -208,6 +239,7 @@ class Composite(BlockItem):
     def _create(self,x,y, comp = None):
         comp = comp or self.spawn(x,y,self._colour(x,y))
         self.items.append(comp)
+        print 'paste %s'%self.items
         comp.local = self
         self.reshape(comp)
     def paste(self,x,y,item):
@@ -269,6 +301,7 @@ class Locus(Composite,Local):
         go = Local.recebe(self, elemento, ato)
         if go:
             x, y = self.icon.pos()
+            elemento.icon.toFront()
             elemento._move(x+BP,y+BP)
             elemento.container = self
             self.reshape(elemento)
@@ -276,6 +309,15 @@ class Locus(Composite,Local):
 class Actor(Composite, Elemento):
     """ Actor
     """
+    def recebe(self, elemento, ato):
+        go = Elemento.recebe(self, elemento, ato)
+        if go:
+            x, y = self.icon.pos()
+            elemento.icon.toFront()
+            elemento._move(x+BP,y+BP)
+            elemento.container = self
+            self.reshape(elemento)
+        return go
     def create(self):
         Elemento.__init__(self)
         return Composite.create(self)
@@ -295,13 +337,15 @@ class Actor(Composite, Elemento):
         pass
     def clone_contents(self,x,y):
         return self.color or self._colour(x,y)
-    def adentra(self, local):
-        self.local = local
-        return True
+    #def adentrar(self, local): >>>> Remover?? sem problemas?
+    #    self.local = local
+    #    return True
 
 class Port(Actor,Portal):
     """ Portal
     """
+    def ativa(self,ato):
+        return Portal.ativa(self,ato)
     def stereotype(self,x,y,color):
         icon = self.gui.image(
             None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = HEX6%color)
@@ -309,6 +353,7 @@ class Port(Actor,Portal):
         return  icon
     def factory(self, icon, owner = None):
         return Port(self.gui,owner or self,icon)
+    
 
 class Reference(Composite,Referencia):
     """ Portal
@@ -344,6 +389,7 @@ class ToolActor(Tool,Actor):
     """ Ferramenta de Portal
     """
     def create(self):
+        Actor.create(self)
         DragDecorator(self,action=self._move,start=self._start,stop=self.paste)
         self.colorz = 0xFFAAAA
         self.color = None
@@ -362,6 +408,7 @@ class ToolPort(Tool,Port):
     """ Ferramenta de Portal
     """
     def create(self):
+        Port.create(self)
         DragDecorator(self,action=self._move,start=self._start,stop=self.paste)
         self.colorz = 0xAAAAFF
         self.color = None
@@ -436,7 +483,7 @@ class App(Locus):
     def paste(self,x,y,item):
         if item in self.items:
             return True
-        item.revert()
+        #item.revert()
         
 def main():
     from pygame_factory import GUI
