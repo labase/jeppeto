@@ -113,9 +113,9 @@ class Local(Elemento):
         return did
     def age(self,ato):
         print 'local age'
-        #for item in self.items:
-        #    if item.ativa(ato):
-        #        return True
+        for item in self.items:
+            if item.entra(ato):
+                return True
         return ato(self)
     def ativa(self,ato):
         print 'ativou'
@@ -138,12 +138,19 @@ class Portal(Local):
         else:
             return self.local.ativa(ato)
             return False
-    def ativa(self,ato):
+    def ativa(self,ato): 
         print 'Portal ativou'
         for item in self.items:
             if item.entra(ato):
                 return True
         did = self.local.entra(ato or self.agir)
+        return did
+    def entra(self,ato): 
+        print 'Portal entrou'
+        for item in self.items:
+            if item.age(ato):
+                return True
+        did = self.local.age(ato or self.agir)
         return did
        
 class Referencia:
