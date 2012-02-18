@@ -291,7 +291,7 @@ class Empacotador(Sprite):
         self.z = l or y
         self._add_buff(self.z)
     def _add_buff(self,z=None):
-        print 'add buff : %s'%self
+        #print 'add buff : %s'%self
         Empacotador.MESTRE.add(self,layer = z)
     def remove(self):
         Empacotador.MESTRE.delete(self)
@@ -379,10 +379,10 @@ class GUI:
         self.do_up = self.do_drag = self.do_drop = self._do_nothing
         if ev.button == 1:
             for item in self.drop_listeners:
-                print item.action
+                #print item.action
                 if item.collide(*ev.pos):
                     par = ( ev.pos[0], ev.pos[1], self.mover.object )
-                    print 'drop collision ', ev.pos
+                    #print 'drop collision ', ev.pos
                     if item.action(*par ): break
         self.mover.stop( ev.pos[0], ev.pos[1], self.mover.object)
         self.mover = self
@@ -445,7 +445,7 @@ class GUI:
     def click(self, object):
         self.click_listeners.insert(0,object)
     def unclick(self, object):
-        print 'removing clicker'
+        #print 'removing clicker'
         [self.click_listeners.remove(obj)
          for obj in self.click_listeners if object is obj.object]
         self._redraw()
@@ -453,22 +453,24 @@ class GUI:
         pygame.display.flip()
         
     def undrop(self, object):
-        print 'removing dropper'
+        #print 'removing dropper'
         [self.drop_listeners.remove(obj)
          for obj in self.drop_listeners if object is obj.object]
         self._redraw()
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
     def undrag(self, object):
-        print 'removing dragger'
+        #print 'removing dragger'
         [self.drag_listeners.remove(obj)
          for obj in self.drag_listeners if object is obj.object]
         self._redraw()
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
+    def cleanup(self):pass
         
     
     def terminate(self):
+        self.cleanup()
         pygame.quit()
         #sys.exit()
 

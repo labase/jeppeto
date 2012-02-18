@@ -18,9 +18,12 @@ __version__ = "0.1 $Revision$"[10:-1]
 __date__    = "2011/12/12 $Date$"
 
 from gui_decorator import Item, DragDecorator, DropDecorator
+import json
 
+JE = json.JSONEncoder()
 PRIMESXYZ = (5,11,111)
 SATURATE = 256
+FIELDS = 'items,color,origin'.split(',')
 
 HEX6 = '#%06x'
 BLACK, WHITE , GREY , NAVWHITE ='#000000', '#FFFFFF', '#A0A0A0', '#FFDFB0'
@@ -50,6 +53,11 @@ class _Nenhures:
     def devolve(self,elemento):
         return self
     def nada_faz(self, *args):
+        pass
+    ########### should move to Null Composite ############
+    def reshape(self, *args):
+        pass
+    def remove(self, *args):
         pass
     def __call__(self):
         return self
@@ -101,6 +109,9 @@ class Elemento:
         return elemento
     def nada_faz(self, *args):
         return False
+    def extra(self):
+        return {}
+        
 
 class Local(Elemento):
     """ Um local onde se pode colocar Elementos
@@ -153,7 +164,7 @@ class Portal(Local):
         did = self.local.age(ato or self.agir)
         return did
        
-class Referencia:
+class Referencia(Elemento):
     """ Referencia Um elemento básico do Jogo.
     """
     def __init__(self, elemento):
@@ -236,34 +247,41 @@ class BlockItem(Item):
         self.avatar.scale(*self.size)
         self.avatar.move(*self.xy)
         self.container.reshape(self)
-        
+#def NOSAV(it): pass
+   
 class Composite(BlockItem):
     """ Um item composto
     """
+    #SAVER = NOSAV
     def _click(self,x,y):
         self.origin = self.xy
         self._create(x,y)
     def _create(self,x,y, comp = None):
         comp = comp or self.spawn(x,y,self._colour(x,y))
+        self.save(comp)
         self.items.append(comp)
-        print 'paste %s'%self.items
+        #print 'paste %s'%self.items
         comp.local = self
         self.reshape(comp)
     def paste(self,x,y,item):
         if item is self:
+            print "rejecting self", self,  item
             return False
         if not item in self.items:
+            print "cloning", self, item
             item.revert()
             self._create(x,y,comp = item.clone(x,y, owner = self))
             pass
         else:
-            self.reshape(item)
+            print "move instead of clone", self, item
+            self.save(Mover(item, xy = [x,y]))
+            #self.reshape(item)
         return True
         
     def _colour(self,x,y):
         xyz = zip ((x,y,x*y), PRIMESXYZ, (2,1,0))
-        return sum((ord * prime) % SATURATE * SATURATE**axis
-            for ord, prime, axis in xyz)
+        return sum((ordin * prime) % SATURATE * SATURATE**axis
+            for ordin, prime, axis in xyz)
     def spawn(self,x,y, color= None, owner = None):
         color = color or self.clone_contents(x,y)
         comp = self.factory(self.stereotype(x,y,color), owner)
@@ -274,11 +292,12 @@ class Composite(BlockItem):
         comp.origin, comp.xy, comp.size = (x,y), (x,y),(BLOCK_SIZE,)* 2
         comp.color = color
         comp.icon.toFront()
-        print 'spawned : %s'%color
+        #print 'spawned : %s'%color
         return comp
     def clone(self,x,y,color=None, owner = None):
-        color = color or self.clone_contents(x,y)
-        comp = Reference(self,self.stereotype(x,y,color), owner)
+        refcolor = color or self.clone_contents(x,y)
+        color = self._colour(x, y)
+        comp = Reference(self,self.stereotype(x,y,refcolor), owner, color = color)
         return self._spawn(x,y,comp,color)
     def clone_contents(self,x,y):
         return self._colour(x,y)
@@ -290,6 +309,29 @@ class Composite(BlockItem):
             None, x, y, BLOCK_SIZE, BLOCK_SIZE, cl = HEX6%color)
         self.gui.rect(0,0,BLOCK_SIZE,2,hexcolor=BLACK,buff=icon.image)
         return icon
+    def extra(self): return {}
+    def convert(self):
+        #print 'default(', repr(obj), ')'
+        # Convert objects to a dictionary of their representation
+        d = dict(
+              cls = self.__class__.__name__, 
+              )
+        d.update (dict ((field[:3], getattr(self,field))
+            for field in FIELDS if hasattr(self,field) and getattr(self,field)))
+        d.update (dict (('con', self.container.color)
+            for field in ['container'] if hasattr(self,field) and getattr(self,field)))
+        d.update(self.extra())
+        return d
+    def save(self,comp):
+        pass       
+    def load(self,owner, loader,its=[],col=0,ori=0,con=0,cls=0,ref=0):
+        x, y = ori
+        color = col
+        elemento = self.spawn(x, y,color,owner=con)
+        elemento.local = con #er
+        owner.items.append(elemento)
+        owner.reshape(elemento)
+        return elemento
 
 class Locus(Composite,Local):
     """ Portal
@@ -365,23 +407,44 @@ class Port(Actor,Portal):
 class Reference(Composite,Referencia):
     """ Portal
     """
-    def __init__(self, referee, icon, owner):
+    def __init__(self, referee = None, icon = None, owner = None, gui = None, color =0):
         self.referee = referee
         Referencia.__init__(self,referee)
-        Composite.__init__(self,referee.gui,owner,icon)
-        self.gui.rect(0,0,4,4,hexcolor=BLACK,buff=self.icon.image)
-        self.gui.rect(1,1,2,2,hexcolor=WHITE,buff=self.icon.image)
+        agui = gui  or owner.gui
+        Composite.__init__(self,agui,owner,icon)
+        self.gui.rect(0,0,24,24,hexcolor=BLACK,buff=self.icon.image)
+        self.gui.rect(2,2,20,20,hexcolor=color,buff=self.icon.image)
+    def _create(self,x,y, comp = None):
+        pass
+    def paste(self,x,y,item):
+        if item is self:
+            return False
+        else:
+            item.revert()
+        return True
     def stereotype(self,x,y,color):
         icon = self.referee.stereotype(x,y,self.referee.color)
         self.gui.rect(0,0,4,4,hexcolor=WHITE,buff=icon.image)
         return icon
     def clone(self,x,y,color=None, owner = None):
         ref = self.referee
-        color = ref.color
-        comp = Reference(ref,ref.stereotype(x,y,color), owner)
+        refcolor = ref.color
+        color = color or self._colour(x, y)
+        comp = Reference(ref,self.stereotype(x,y,refcolor), owner, color = color)
         return self._spawn(x,y,comp,color)
     def adentra(self,local):
         pass
+    def extra(self):
+        return dict(ref=self.referee.color)
+    def load(self,owner, loader,its=[],col=0,ori=0,con=0,cls=0,ref=0):
+        x, y = ori
+        color = col
+        self.referee = loader.element_pool(ref)
+        elemento = self.clone(x, y,color,owner=owner)
+        elemento.local = owner
+        owner.items.append(elemento)
+        owner.reshape(elemento)
+        return elemento
     
 class Tool():
     """ Tool
@@ -441,6 +504,29 @@ class ToolLocus(Tool,Locus):
         self.items =[]
         return self.icon
 
+class Deleter(Reference):
+    def __init__(self, referee = None, icon = None, owner = None, gui = None):
+        self.referee = referee
+        if referee: referee.delete()
+    def load(self,owner, loader,its=[],col=0,ori=0,con=0,cls=0,ref=0):
+        self.referee = loader.element_pool(ref)
+        return Deleter(self.referee)
+    def delete(self):
+        del self
+
+class Mover(Deleter):
+    def __init__(self, referee = None, icon = None,
+                 owner = None, gui = None, xy = [0,0]):
+        self.referee = referee
+        x, y, = self.origin = xy
+        if referee:
+            referee._move(x,y)
+            if referee.container:
+                referee.container.reshape(referee)
+    def load(self,owner, loader,its=[],col=0,ori=0,con=0,cls=0,ref=0):
+        self.referee = loader.element_pool(ref)
+        return Mover(self.referee, xy = ori)
+
 class DustBin(Composite):
     """ Lata de lixo
     """
@@ -459,7 +545,8 @@ class DustBin(Composite):
         return self.icon
     def scrap(self,x,y,item):
         print "scrapping %s"%item
-        item.delete()
+        dlt = Deleter(item)
+        self.save(dlt)
         return True
 
 class App(Locus):
@@ -469,6 +556,11 @@ class App(Locus):
         self.gui.create_game(self, name)
     def create(self):
         self.items =[]
+        Loader(self)
+        App.SINK = file('jpt.jpt','a')
+        Composite.save = self.saver
+        #App.SINK.write('[')
+        self.gui.cleanup = self.cleanup
         self.container = self
         self.color = None #0xFFDFBF
         self.xy = self.origin = (0,0)
@@ -481,16 +573,69 @@ class App(Locus):
         por = ToolPort(self.gui,self)
         DropDecorator(self, self.paste)
         return app
+    def cleanup(self):
+        #App.SINK.write('{}]')
+        #saver(self.items)
+        App.SINK.close()
+        
     def _create(self,x,y,comp = None):
         comp = self.spawn(x,y)
+        self.save(comp)
         self.items.append(comp)
+        print 'created from App'
         comp.local = NENHURES()
     def reshape(self, block):
         return (0,0)
     def paste(self,x,y,item):
         if item in self.items:
+            self.save(Mover(item, xy = [x,y]))
             return True
         #item.revert()
+    def saver(self, block):
+        #App.SINK.write(json.dumps(block, indent=2, default=convert_to_builtin_type)+',')
+        App.SINK.write(json.dumps(block, indent=2, default= lambda o: o.convert())+',')
+        App.SINK.flush()
+
+class Loader:
+    def __init__(self, owner):
+        App.SINK = file('jpt.jpt','r')
+        json_string = App.SINK.read()
+        if len(json_string) < 4: return
+        
+        json_string = '['+ json_string[:-1]+']'
+        #print json_string[-20:]
+        CLASS_DICT={}
+        self.ELEMENT_DICT={-1:owner}
+        python_object_list = []
+        icon = owner.gui.image( None,-100, -100, 1, 1, cl = '#FFDFB6')
+        try:
+            python_object_list = json.loads(json_string)
+        except:
+            raise Exception("Problem reading from JSON stream")
+        def flyweight(clazz):
+            if clazz in CLASS_DICT:
+                return CLASS_DICT[clazz]
+            else:
+                cl = CLASS_DICT[clazz] = globals()[clazz](gui = owner.gui, icon=icon)
+                return cl
+        def instantiate(python_object,its=[],col=0,ori=0,con=0,cls=0,ref=0):
+            clazz = flyweight(cls)
+            owner = self.element_pool(con or -1)
+            container_nowhere_when_app = not con and NENHURES() or owner
+            python_object['con']= container_nowhere_when_app
+            #print 'owner', own, owner
+            element = clazz.load(owner,self,**python_object)
+            #print 'element',element
+            self.element_pool(col, element)
+        [instantiate(po,**po) for po in python_object_list if po]
+        App.SINK.close()
+        #for cls, instance in CLASS_DICT.items() : instance.delete()
+    def element_pool(self,name,clazz=None):
+        if name in self.ELEMENT_DICT:
+            return self.ELEMENT_DICT[name]
+        else:
+            cl = self.ELEMENT_DICT[name] = clazz
+            return cl
         
 def main():
     from pygame_factory import GUI
