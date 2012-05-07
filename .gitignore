@@ -1,5 +1,4 @@
-.
-..
 .bzr
+*.pycc
 .komodotools
-.komodoproject
+*.komodoproject
