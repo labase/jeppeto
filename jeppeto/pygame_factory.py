@@ -28,6 +28,7 @@ import logging
 logger = logging.getLogger('myapp')
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.CRITICAL)
+#logger.setLevel(logging.INFO)
 
 
 try:
@@ -40,8 +41,8 @@ from time import time
 import zipfile
 from io import BytesIO
 ICONS = zipfile.ZipFile('/home/carlo/shine-icon-set.zip', 'r')
-IMAGEREPO = 'image/'
 '''
+IMAGEREPO = 'public/image/'
 # Event constant.
 TIMEREVENT = pygame.USEREVENT
 
@@ -277,7 +278,7 @@ class Empacotador(Sprite):
                 if f:
                     graphic = pygame.image.load(buff).convert()
                 else:
-                    graphic = pygame.image.load("image/%s"%image).convert()
+                    graphic = pygame.image.load("%s%s"%(IMAGEREPO,image)).convert()
                 Empacotador.IMAGES[image] = graphic
             else:
                 graphic = Empacotador.IMAGES[image]
@@ -306,6 +307,9 @@ class Empacotador(Sprite):
         self.image = pygame.transform.scale(self.image, (w, h))
         self.rect = self.image.get_rect()
         self.rect.topleft = tl
+    def rotate(self,a):
+        self.image = pygame.transform.rotate(self.image, a)
+        self.rect = self.image.get_rect()
     def translate(self,x,y):
         ox, oy = self.rect.topleft
         self.rect.topleft = (ox+x,oy+y)
@@ -380,6 +384,7 @@ class GUI:
         if ev.button == 1:
             for item in self.drop_listeners:
                 #print item.action
+                logger.info("an item listener: %s ", item.object)
                 if item.collide(*ev.pos):
                     par = ( ev.pos[0], ev.pos[1], self.mover.object )
                     #print 'drop collision ', ev.pos
@@ -436,33 +441,36 @@ class GUI:
         #menu = Menu(source,x,y,w,h, l, f, buff)
         Menu.MBUFF = self.buffer.copy()#self.last #self.tela.copy()
         return Menu()#source,x,y,w,h, l, f, buff)
-    def dragg(self, object):
-        self.drag_listeners.insert(0,object)
-        logger.info("to drag listeners: %s", str(object))
-    def drop(self, object):
-        self.drop_listeners.insert(0,object)
-        logger.info("to drop listeners: %s", str(object))
-    def click(self, object):
-        self.click_listeners.insert(0,object)
-    def unclick(self, object):
+    def dragg(self, obj):
+        self.drag_listeners.insert(0,obj)
+        logger.info("to drag listeners: %s", str(obj))
+    def drop(self, obj):
+        self.drop_listeners.insert(0,obj)
+        logger.info("to drop listeners: %s", str(obj))
+    def click(self, obj):
+        self.click_listeners.insert(0,obj)
+    def unclick(self, obj):
         #print 'removing clicker'
         [self.click_listeners.remove(obj)
-         for obj in self.click_listeners if object is obj.object]
+         for obj in self.click_listeners if obj is obj.object]
         self._redraw()
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
+    def toFront(self, obj):
+        self.click_listeners.remove(obj)
+        self.click_listeners.insert(0,obj)
         
-    def undrop(self, object):
+    def undrop(self, obj):
         #print 'removing dropper'
         [self.drop_listeners.remove(obj)
-         for obj in self.drop_listeners if object is obj.object]
+         for obj in self.drop_listeners if obj is obj.object]
         self._redraw()
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
-    def undrag(self, object):
+    def undrag(self, obj):
         #print 'removing dragger'
         [self.drag_listeners.remove(obj)
-         for obj in self.drag_listeners if object is obj.object]
+         for obj in self.drag_listeners if obj is obj.object]
         self._redraw()
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
