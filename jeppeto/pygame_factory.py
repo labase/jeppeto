@@ -11,12 +11,13 @@ Pygame Factory : Gui interface to pygame
 :Status: This is a "work in progress"
 :Revision: $Revision: 0.1 $
 :Home: `Labase <http://labase.nce.ufrj.br/>`__
-:Copyright: ©2011, `GPL <http://is.gd/3Udt>`__. 
+:Copyright: ©2011, `GPL <http://is.gd/3Udt>`__.
 """
 __author__  = "Carlo E. T. Oliveira (cetoli@yahoo.com.br) $Author: cetoli $"
 __version__ = "0.1 $Revision$"[10:-1]
 __date__    = "2011/07/31 $Date$"
 
+import os
 import pygame
 import pygame as KL
 from pygame.color import Color as CL
@@ -42,7 +43,8 @@ import zipfile
 from io import BytesIO
 ICONS = zipfile.ZipFile('/home/carlo/shine-icon-set.zip', 'r')
 '''
-IMAGEREPO = 'public/image/'
+IMAGE_PATH = os.path.join('public', 'image')
+
 # Event constant.
 TIMEREVENT = pygame.USEREVENT
 
@@ -63,14 +65,14 @@ class Renderer(Render):
         #self.spritedict.pop(sprite)
     def remove_internal(self, sprite):
         """
-        Do not use this method directly. It is used by the group to 
+        Do not use this method directly. It is used by the group to
         add a sprite.
         """
         # these dirty rects are suboptimal for one frame
         self.lostsprites.append(self.spritedict[sprite]) # dirty rect
         if hasattr(sprite, 'rect'):
             self.lostsprites.append(sprite.rect) # dirty rect
-        
+
         self.spritedict.pop(sprite)
         self._spritelayers.pop(sprite)
         [self._spritelist.pop(i) for i, x in enumerate(self._spritelist) if sprite is x]
@@ -83,11 +85,11 @@ class Renderer(Render):
         """
         sprites = self._spritelist # speedup
         sprites_layers = self._spritelayers # speedup
-        
-        #sprites.remove(sprite) 
+
+        #sprites.remove(sprite)
         sprites_layers.pop(sprite)
         [self._spritelist.pop(i) for i, x in enumerate(self._spritelist) if sprite is x]
-        
+
         # add the sprite at the right position
         # bisect algorithmus
         leng = len(sprites)
@@ -106,7 +108,7 @@ class Renderer(Render):
         sprites.insert(mid, sprite)
         if hasattr(sprite, 'layer'):
             sprite.layer = new_layer
-        
+
         # add layer info
         sprites_layers[sprite] = new_layer
 '''
@@ -123,7 +125,7 @@ class Renderer(Render):
         sprites.insert(mid, sprite)
         if hasattr(sprite, 'layer'):
             sprite.layer = new_layer
-        
+
         # add layer info
         sprites_layers[sprite] = new_layer
 '''
@@ -148,7 +150,7 @@ class HandleEvent(dict):
             pygame.USEREVENT        : self.USEREVENT
             }
         )
-    def QUIT(self, event): 
+    def QUIT(self, event):
         self.gui.terminate()
         return True
     def ACTIVEEVENT(self, event): pass
@@ -202,45 +204,45 @@ class TextBox(Sprite):
         font = pygame.font.Font(None, 18)
         rect = pygame.Rect([0, 0, 220, 22])
         offset = (3, 3)
-    
+
         center = screen.get_rect().center
         rect.center = center
-    
+
         pygame.draw.rect(screen, (0, 0, 0), rect, 0)
         pygame.draw.rect(screen, (255,255,255), rect, 1)
-    
+
         rect.left += offset[0]
         rect.top  += offset[1]
-    
+
         if len(message) != 0:
             screen.blit(font.render(message, 1, (255,255,255)), rect.topleft)
-        
+
         pygame.display.flip()
-    
+
     def ask(screen, question):
         "ask(screen, question) -> answer"
-        pygame.font.init()  
+        pygame.font.init()
         text = ""
         display_box(screen, question + ": " + text)
-    
+
         while True:
             pygame.time.wait(50)
             event = pygame.event.poll()
-            
+
             if event.type == QUIT:
-                sys.exit()	 
+                sys.exit()
             if event.type != KEYDOWN:
               continue
-              
+
             if event.key == K_BACKSPACE:
                 text = text[0:-1]
             elif event.key == K_RETURN:
                 break
             else:
                 text += event.unicode.encode("ascii")
-                
+
             display_box(screen, question + ": " + text)
-            
+
         return text
 
 
@@ -261,7 +263,7 @@ class TextBox(Sprite):
     def initGroup(self):
         self.group = pygame.sprite.GroupSingle()
         self.group.add(self)
-    
+
 class Empacotador(Sprite):
     EBUFF = None
     MESTRE = Renderer()
@@ -278,7 +280,7 @@ class Empacotador(Sprite):
                 if f:
                     graphic = pygame.image.load(buff).convert()
                 else:
-                    graphic = pygame.image.load("%s%s"%(IMAGEREPO,image)).convert()
+                    graphic = pygame.image.load(os.path.join(IMAGE_PATH, image)).convert()
                 Empacotador.IMAGES[image] = graphic
             else:
                 graphic = Empacotador.IMAGES[image]
@@ -348,7 +350,7 @@ class GUI:
         self.do_up = self._do_up
         self.do_down = self._do_down #self._do_nothing
         self.do_drag = self._do_nothing
-    
+
         # Set the screen size.
         self.tela = pygame.display.set_mode((CANVASW, CANVASH))
         #self.tela.fill(COLOR['forest green'])
@@ -419,7 +421,7 @@ class GUI:
         self.mover = self
         #print ev.button, self.listeners
         self.item()
-        
+
     def _redraw(self):
         rectlist = Empacotador.clear(self.buffer)
         #rectlist += Menu.clear(self.buffer)
@@ -459,7 +461,7 @@ class GUI:
     def toFront(self, obj):
         self.click_listeners.remove(obj)
         self.click_listeners.insert(0,obj)
-        
+
     def undrop(self, obj):
         #print 'removing dropper'
         [self.drop_listeners.remove(obj)
@@ -475,8 +477,8 @@ class GUI:
         self.tela.blit(self.buffer,(0,0))
         pygame.display.flip()
     def cleanup(self):pass
-        
-    
+
+
     def terminate(self):
         self.cleanup()
         pygame.quit()
