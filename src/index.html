@@ -8,7 +8,7 @@
     <!-- fonts -->
     <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed" rel="stylesheet">
     <script src="https://kit.fontawesome.com/ee888cdf8b.js" crossorigin="anonymous"></script>
-    <link rel="shortcut icon" href="/image/favico.ico" type="image/x-icon"/>
+    <link rel="shortcut icon" href="/site/image/favico.ico" type="image/x-icon"/>
     <script type="text/javascript" src="https://cdn.rawgit.com/brython-dev/brython/3.8.0/www/src/brython.js">
     </script>
     <script type="text/javascript" src="https://cdn.rawgit.com/brython-dev/brython/3.8.0/www/src/brython_stdlib.js">
@@ -44,13 +44,15 @@
 
             window.brython ( { 'pythonpath' : modulepaths } )
         '''
+        from jeppeto import main
+        from version import __version__
         window.GONE = 0
         print(window.GONE)
         # from  samantha import main
-        Template("_version_").render(version="22.10")
+        Template("_tt_").render(titulo="Labase - Jeppeto")
+        Template("_version_").render(version=__version__)  # "22.10")
         print("ok")
 
-        from jeppeto import main
         print("ok ag")
         main.main()
 </script>
