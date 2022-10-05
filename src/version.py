@@ -23,8 +23,8 @@
 Changelog
 ---------
 
-.. versionadded::    22.10
-        Support import from other files.
+.. versionadded::    22.10a
+        GUI demo with added docs.
 
 """
-__version__ = "22.10"
+__version__ = "22.10a"
