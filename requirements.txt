@@ -1,3 +1,5 @@
 PyGithub>=1.40
 gunicorn
 bottle
+mockbrython
+sphinx_version_ref

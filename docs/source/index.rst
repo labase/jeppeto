@@ -5,6 +5,8 @@
 
 .. _jeppeto_index:
 
+:version-ref:
+
 Editor de Jogos Jeppeto
 =============================
  |Jeppeto|
@@ -13,9 +15,10 @@ Editor gráfico de jogos hospedados na internet.
 
   |python| |license| |github| |docs|
 
+version is :version-ref:`{version}`
 
 :Author:  Carlo E. T. Oliveira
-:Version: 22.10
+:Version: :version-ref:`{version}`
 :Affiliation: Universidade Federal do Rio de Janeiro
 :License: GNU General Public License v3 or later (GPLv3+)
 :Homepage: `Editor de Jogos Jeppeto`_

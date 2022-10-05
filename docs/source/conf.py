@@ -45,6 +45,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
+    'sphinx_version_ref'
 ]
 
 templates_path = ['_templates']
@@ -65,4 +66,5 @@ html_theme_options = {
 html_favicon = '_static/favico.ico'
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-autodoc_mock_imports = ['browser']
+# autodoc_mock_imports = ['browser']
+autodoc_mock_imports = ['_spy.vitollino.main']

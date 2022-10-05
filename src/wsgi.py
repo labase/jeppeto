@@ -69,7 +69,7 @@ cod_dir = os.path.join(project_server, './')
 js_dir = os.path.join(project_server, '../site/stlib')
 css_dir = os.path.join(project_server, '../site/css')
 img_dir = os.path.join(project_server, '../site/image')
-tpl_dir = os.path.join(project_server, '../site/tpl')
+tpl_dir = os.path.join(project_server, '../site/infra')
 rot_dir = os.path.join(project_server, '../')
 
 bottle.DEBUG = True
@@ -106,7 +106,7 @@ def ajs(filepath):
 
 
 # Static Routes
-@get("/site/<filepath:re:.*[.](html|tpl)>")
+@get("/site/infra/<filepath:re:.*[.](html|tpl)>")
 def ajs(filepath):
     return static_file(filepath, root=tpl_dir)
 

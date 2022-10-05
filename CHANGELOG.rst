@@ -12,7 +12,7 @@ The format is based on `Keep a Changelog`_.
 -------------
 - to be defined
 
-`22.10`_
+`22.10a`_
 ----------------
 
 Added
@@ -47,7 +47,7 @@ LABASE_ - NCE_ - UFRJ_
 .. _UFRJ: http://www.ufrj.br
 .. _Keep a Changelog: https://keepachangelog.com/en/1.0.0/
 .. _12.00: https://github.com/labase/jeppeto/releases/tag/12.00
-.. _22.10: https://github.com/labase/jeppeto/releases/
+.. _22.10a: https://github.com/labase/jeppeto/releases/tag/22.10a
 .. _Unreleased: https://github.com/labase/jeppeto/releases/
 
 .. |LABASE| image:: https://cetoli.gitlab.io/spyms/image/labase-logo-8.png
