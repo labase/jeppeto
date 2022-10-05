@@ -22,7 +22,7 @@ Added
 
 Changed
 +++++++
-- Work in progress.
+- Split Jeppeto into main and wrapper.
 
 
 

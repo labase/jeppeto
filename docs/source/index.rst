@@ -1,3 +1,10 @@
+.. Jeppeto documentation master file, created by
+   sphinx-quickstart on Wed Oct  5 12:08:35 2022.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+.. _jeppeto_index:
+
 Editor de Jogos Jeppeto
 =============================
  |Jeppeto|
@@ -8,11 +15,11 @@ Editor gráfico de jogos hospedados na internet.
 
 
 :Author:  Carlo E. T. Oliveira
-:Version: 22.10a
+:Version: 22.10
 :Affiliation: Universidade Federal do Rio de Janeiro
 :License: GNU General Public License v3 or later (GPLv3+)
 :Homepage: `Editor de Jogos Jeppeto`_
-:Changelog: `CHANGELOG <CHANGELOG.rst>`_
+:Changelog: `CHANGELOG`_
 
 Jeppeto - Editor Gráfico de Jogos
 ---------------------------------
@@ -29,22 +36,17 @@ implicando no alcance das seguintes metas:
   e a intervenção do professor para desafiar o aluno a trilhar os seus próprios passos e até mesmo possibilitar
   os alunos incentivar e abrasar seus colegas com suas próprias aventuras no conhecimento.
 
--------
+.. toctree::
+   :maxdepth: 2
+   :caption: Conteúdo:
 
-Laboratório de Automação de Sistemas Educacionais
--------------------------------------------------
-
-**Copyright © Carlo Olivera**
-
-LABASE_ - NCE_ - UFRJ_
-
-|LABASE|
-
-.. _LABASE: http://labase.activufrj.nce.ufrj.br
-.. _NCE: http://nce.ufrj.br
-.. _UFRJ: http://www.ufrj.br
+   intro.rst
+   user.rst
+   modules.rst
 
 .. _Editor de Jogos Jeppeto: http://jeppeto.activufrj.nce.ufrj.br
+
+.. _CHANGELOG: https://github.com/labase/jeppeto/blob/master/CHANGELOG.rst
 
 .. |rtfd| image:: https://readthedocs.org/projects/supyplay/badge/?version=latest
    :target: https://supyplay.readthedocs.io/en/latest/
@@ -52,21 +54,18 @@ LABASE_ - NCE_ - UFRJ_
 .. |github| image:: https://img.shields.io/github/v/release/labase/jeppeto?include_prereleases
    :target: https://github.com/labase/jeppeto/releases
 
-
-.. |LABASE| image:: https://i.imgur.com/vxJMfrM.png
-   :target: http://labase.activufrj.nce.ufrj.br
-   :alt: LABASE
-
-.. |Jeppeto| image:: site/image/jeppetoc.png
+.. |Jeppeto| image:: _static/jeppetoc.png
    :target: http://jeppeto.activufrj.nce.ufrj.br
    :alt: JEPPETO - Editor de Jogos
    :width: 800px
 
 .. |python| image:: https://img.shields.io/github/languages/top/labase/jeppeto
-   :target: https://www.python.org/downloads/release/python-383/
+   :target: https://www.python.org/downloads/release/python-3107/
 
 .. |docs| image:: https://img.shields.io/readthedocs/jeppeto
    :target: https://jeppeto.readthedocs.io/en/latest/index.html
 
 .. |license| image:: https://img.shields.io/github/license/labase/jeppeto
    :target: https://github.com/labase/jeppeto/blob/master/LICENSE
+
+.. include:: foot.rst
