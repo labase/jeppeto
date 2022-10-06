@@ -6,13 +6,7 @@
 
 Módulo Empacotador
 ------------------
-
-Classe Auxiliar Boxer
-^^^^^^^^^^^^^^^^^^^^^
-Define parâmetros para a construção de um dado elemento.
-
-.. autoclass:: jeppeto.wrapper.Boxer
-    :no-undoc-members:
+Define um conjunto de classes que empacotam componentes da biblioteca Vitollino.
 
 Classes Empacotadoras
 ^^^^^^^^^^^^^^^^^^^^^
@@ -24,11 +18,31 @@ Empacotam componentes do Vitollino.
     :show-inheritance:
     :platform: Web
     :synopsis: Empacotamento de componentes gráficos.
-    :exclude-members: Boxer
+    :exclude-members: Boxer, ModelMake
+
+Classe Auxiliar Boxer
+^^^^^^^^^^^^^^^^^^^^^
+Define parâmetros para a construção de um dado elemento.
+
+.. autoclass:: jeppeto.wrapper.Boxer
+    :no-undoc-members:
+
+Fachada Criadora ModelMake
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Fachada que reúne comandos para criar classes empacotadoras.
+
+Estas classes reúnem o elemento original do Vitollino com uma classe Boxer.
+Com isto, os componentes podem ser representados simbolicamente na tela
+do Jeppeto
+
+.. autoclass:: jeppeto.wrapper.ModelMake
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 .. seealso::
 
-   Module :ref:`jeppeto_index`
+   Module :ref:`modulo_main`
 
 .. note::
    Cria classes empacotadoras para a biblioteca Vitollino.

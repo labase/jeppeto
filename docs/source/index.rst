@@ -5,8 +5,6 @@
 
 .. _jeppeto_index:
 
-:version-ref:
-
 Editor de Jogos Jeppeto
 =============================
  |Jeppeto|
@@ -15,10 +13,8 @@ Editor gráfico de jogos hospedados na internet.
 
   |python| |license| |github| |docs|
 
-version is :version-ref:`{version}`
-
 :Author:  Carlo E. T. Oliveira
-:Version: :version-ref:`{version}`
+:Version: :version-ref:`{version} <https://github.com/labase/jeppeto/releases/tag/{version}>`
 :Affiliation: Universidade Federal do Rio de Janeiro
 :License: GNU General Public License v3 or later (GPLv3+)
 :Homepage: `Editor de Jogos Jeppeto`_
@@ -66,7 +62,7 @@ implicando no alcance das seguintes metas:
    :target: https://www.python.org/downloads/release/python-3107/
 
 .. |docs| image:: https://img.shields.io/readthedocs/jeppeto
-   :target: https://jeppeto.readthedocs.io/en/latest/index.html
+   :target: https://jeppeto.readthedocs.io/pt/latest/
 
 .. |license| image:: https://img.shields.io/github/license/labase/jeppeto
    :target: https://github.com/labase/jeppeto/blob/master/LICENSE

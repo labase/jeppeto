@@ -16,7 +16,7 @@ Módulo Central
 
 .. seealso::
 
-   Module :ref:`jeppeto_index`
+   Module :ref:`modulo_wrapper`
 
 .. note::
    Controla também a criação de novos arquivos python.

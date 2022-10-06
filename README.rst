@@ -8,7 +8,6 @@ Editor gráfico de jogos hospedados na internet.
 
 
 :Author:  Carlo E. T. Oliveira
-:Version: 22.10a
 :Affiliation: Universidade Federal do Rio de Janeiro
 :License: GNU General Public License v3 or later (GPLv3+)
 :Homepage: `Editor de Jogos Jeppeto`_
@@ -66,7 +65,7 @@ LABASE_ - NCE_ - UFRJ_
    :target: https://www.python.org/downloads/release/python-383/
 
 .. |docs| image:: https://img.shields.io/readthedocs/jeppeto
-   :target: https://jeppeto.readthedocs.io/en/latest/index.html
+   :target: https://jeppeto.readthedocs.io/pt/latest/index.html
 
 .. |license| image:: https://img.shields.io/github/license/labase/jeppeto
    :target: https://github.com/labase/jeppeto/blob/master/LICENSE
