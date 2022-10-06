@@ -20,10 +20,13 @@ Changelog
 .. versionadded::    22.10
         First version ported from Supygirls.
 
+.. versionadded::    22.10a
+        Add collect files dialog.
+
 """
 
-from browser import svg, document, html, alert
-from collections import namedtuple
+from browser import svg, document, html, bind
+from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog
 from jeppeto.wrapper import ModelMake, Box
 # "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.2/css/fontawesome.min.css"
 AWESOME = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css"
@@ -282,7 +285,28 @@ class ToolBox:
         self.model.remove(box)
 
     def tool_edit(self, ev):
-        pass
+
+        d = Dialog("Test", ok_cancel=True)
+        # d.message = "Uma mensagem"
+        translations = {'Français': 'Salut', 'Español': 'Hola', 'Italiano': 'Ciao'}
+        style = dict(textAlign="center", paddingBottom="1em")
+
+        listing = html.DIV("Name " + html.TEXTAREA(), style=style)
+        _ = d.panel <= html.DIV("Name " + html.TEXTAREA(), style=style)
+        # _ = d.panel <= html.DIV(
+        #     "Language " + html.SELECT(html.OPTION(k) for k in translations), style=style)
+
+        # Event handler for "Ok" button
+        @bind(d.ok_button, "click")
+        def ok(_):
+            """InfoDialog with text depending on user entry, at the same position as the
+            original box."""
+            pics = listing.text.split() or ["nono"]
+            # prompt = translations[language]
+            # name = d.select_one("INPUT").value
+            left, top = d.scrolled_left, d.scrolled_top
+            d.close()
+            d3 = InfoDialog("Test", f"{pics[0]} !", left=left, top=top)
 
     def tool_select(self, ev):
         pass
