@@ -171,7 +171,7 @@ class Quarto(Sala, Box):
         Box.__init__(self, box)
 
 
-class ModelMake:
+class ModelMake(Box):
     """Fachada de acesso aos empacotadores de componentes.
 
     :param gui: referência ao módulo de apresentação gráfica.
@@ -179,6 +179,7 @@ class ModelMake:
 
     def __init__(self, gui):
 
+        super().__init__()
         self.gui = gui
         self.parts = dict(tomada=self.tomada, ator=self.ator, objeto=self.objeto, texto=self.texto, sala=self.sala)
 

@@ -27,7 +27,7 @@ Changelog
 
 from browser import svg, document, html, bind
 from browser.widgets.dialog import Dialog, EntryDialog, InfoDialog
-from jeppeto.wrapper import ModelMake, Box
+from jeppeto.wrapper import ModelMake, Box, Boxer
 # "https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.2/css/fontawesome.min.css"
 AWESOME = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css"
 FAW = html.LINK(rel="stylesheet", href=AWESOME, Type="text/css")
@@ -42,8 +42,11 @@ PX, PY = 20, 20
 class SvgPainter:
     def __init__(self, main_):
         self._main = main_
-        self.shape = dict(b=lambda x, y, w, h, it=self: svg.rect(
-            x=x, y=y, width=w, height=h, fill=it.fill, fill_opacity=it.opacity))
+        self.shape = dict(
+            b=lambda x, y, w, h, it=self: svg.rect(
+                x=x, y=y, width=w, height=h, fill=it.fill, fill_opacity=it.opacity),
+            i=lambda i, x, y, w, h, it=self: svg.image(
+                x=x, y=y, width=w, height=h, href=i, opacity=it.opacity))
         self.root = root = document["pydiv"]
         root.html = ""
         self.canvas = svg.svg(viewBox=f"{PX} {PY} {CW / Z} {CH / Z}", width=1200, height=650)
@@ -152,6 +155,7 @@ class SvgMarquee:
 
 class Main:
     def __init__(self, marker=None, painter=None, tool=None, make=None):
+        self.assets = dict(tomada=[], ator=[], objeto=[], fala=[])
         self.model = make
         self.filling = None
         self.painter = painter
@@ -176,6 +180,11 @@ class Main:
         self.marquee.main()
         return
 
+    def update(self, asset, value=None):
+        assets = self.assets[asset]
+        self.assets[asset] = assets if value is None else value
+        return assets
+
     def filler(self, color):
         self.filling.style.color = color
 
@@ -195,15 +204,34 @@ class Main:
         box = self.model.find(x, y)
         _ = f in kwargs
         bbox = box.as_dict() if box else None
-        # print(box, bbox,">>>", [(b.box.x, b.box.y) for b in Box.BOX])
+        print(box, bbox,">>>", [(b.box.x, b.box.y) for b in Box.BOX])
         # self.marquee.paint(x=x, y=y, w=40, h=40) if box
         self.marquee.paint(**bbox) if box else None
 
 
 class ToolBox:
     def __init__(self, app=None, painter=None):
+        class Tool:
+            def __init__(self, kind, color, icon):
+                self.kind, self.color, self.icon = kind, color, icon
+
         nomes = "tomada ator papel texto coisa sala castelo enigma".split()
         cores = "yellow green orange red blue cyan magenta purple".split()
+        icones = "yellow green orange red blue cyan magenta purple".split()
+        """
+        edit = "fa-solid fa-paintbrush"
+        select = "fa-solid fa-object-group"
+        zoom = "fa-solid fa-magnifying-glass"
+        turnoff = "fa-solid fa-power-off"
+        cena = "fa-solid fa-image"
+        people = "fa-solid fa-person"
+        roteiro = "fa-sharp fa-solid fa-scroll"
+        texto = "fa-solid fa-comment"
+        coisa = "fa-solid fa-screwdriver-wrench"
+        sala = "fa-solid fa-building"
+        # labirinto = "fa-solid fa-castle"
+        puzzle = "fa-solid fa-puzzle-piece"
+        """
         self.parts = {nome: cor for nome, cor in zip(nomes, cores)}
         self.model = Box()
         self.painter = painter
@@ -284,29 +312,23 @@ class ToolBox:
     def remove(self, box):
         self.model.remove(box)
 
-    def tool_edit(self, ev):
+    def tool_edit(self, _):
 
-        d = Dialog("Test", ok_cancel=True)
-        # d.message = "Uma mensagem"
-        translations = {'Français': 'Salut', 'Español': 'Hola', 'Italiano': 'Ciao'}
+        d = Dialog("Imagens", ok_cancel=True)
         style = dict(textAlign="center", paddingBottom="1em")
+        text = "\n".join(self.app.update("tomada"))
 
-        listing = html.DIV("Name " + html.TEXTAREA(), style=style)
-        _ = d.panel <= html.DIV("Name " + html.TEXTAREA(), style=style)
-        # _ = d.panel <= html.DIV(
-        #     "Language " + html.SELECT(html.OPTION(k) for k in translations), style=style)
+        listing = html.TEXTAREA(text, rows=4, cols=80, name="pics")
+        _ = d.panel <= html.DIV(listing, style=style)
 
-        # Event handler for "Ok" button
         @bind(d.ok_button, "click")
         def ok(_):
             """InfoDialog with text depending on user entry, at the same position as the
             original box."""
-            pics = listing.text.split() or ["nono"]
-            # prompt = translations[language]
-            # name = d.select_one("INPUT").value
-            left, top = d.scrolled_left, d.scrolled_top
+            pics = listing.value.split() or ["nono"]
+            self.app.update("tomada", pics)
             d.close()
-            d3 = InfoDialog("Test", f"{pics[0]} !", left=left, top=top)
+            # d3 = InfoDialog("Test", f"{pics[0]} !", left=left, top=top)
 
     def tool_select(self, ev):
         pass
