@@ -204,34 +204,42 @@ class Main:
         box = self.model.find(x, y)
         _ = f in kwargs
         bbox = box.as_dict() if box else None
-        print(box, bbox,">>>", [(b.box.x, b.box.y) for b in Box.BOX])
+        print(box, bbox, ">>>", [(b.box.x, b.box.y) for b in Box.BOX])
         # self.marquee.paint(x=x, y=y, w=40, h=40) if box
         self.marquee.paint(**bbox) if box else None
 
 
 class ToolBox:
     def __init__(self, app=None, painter=None):
-        class Tool:
-            def __init__(self, kind, color, icon):
-                self.kind, self.color, self.icon = kind, color, icon
+        _self = self
 
-        nomes = "tomada ator papel texto coisa sala castelo enigma".split()
-        cores = "yellow green orange red blue cyan magenta purple".split()
-        icones = "yellow green orange red blue cyan magenta purple".split()
-        """
-        edit = "fa-solid fa-paintbrush"
-        select = "fa-solid fa-object-group"
-        zoom = "fa-solid fa-magnifying-glass"
-        turnoff = "fa-solid fa-power-off"
-        cena = "fa-solid fa-image"
-        people = "fa-solid fa-person"
-        roteiro = "fa-sharp fa-solid fa-scroll"
-        texto = "fa-solid fa-comment"
-        coisa = "fa-solid fa-screwdriver-wrench"
-        sala = "fa-solid fa-building"
-        # labirinto = "fa-solid fa-castle"
-        puzzle = "fa-solid fa-puzzle-piece"
-        """
+        class Tool:
+            def __init__(self, kind, color, icon, order, action):
+                self.kind, self.color, self.icon, self.order, self.action = kind, color, icon, order, action
+
+            def paint(self, canvas):
+                sty = {'position': "absolute", 'left': '0px', 'top': f'{self.order*40}px',
+                       'min-height': "30px", 'width': "30px", 'background-color': self.color}
+                col = html.DIV(title=self.kind, style=sty)
+                _ = canvas <= col
+                _ = col <= html.SPAN(Class=f"fa-solid fa-{self.icon}",
+                                     style={'font-size': '30px', 'pointer-events': 'none', 'color': 'black',
+                                            'opacity': 0.4})
+                col.bind("click", lambda ev, it=self: it.action(ev, it) if it.action else it.go(ev))
+
+            def go(self, *_):
+                tool = self  # _self.toolbox[ev.target.title]
+                _self.filler(color=tool.color)
+                _self.painter.filler(color=tool.kind)
+
+        nomes = "tomada ator papel texto coisa sala castelo enigma edit select zoom power".split()
+        cores = "yellow green orange red blue cyan magenta peru".split() + ["transparent"] * 4
+        figuras = ("image person scroll comment screwdriver-wrench house building puzzle-piece " +
+                   "paintbrush object-group magnifying-glass power-off").split()
+        actions = (None,)*8 + (self.tool_edit, self.tool_select, self.tool_zoom, self.tool_turnoff)
+
+        self.toolbox = {nome: Tool(kind=nome, color=cor, icon=figura, order=ordem, action=age)
+                        for ordem,  (nome, cor, figura, age) in enumerate(zip(nomes, cores, figuras, actions))}
         self.parts = {nome: cor for nome, cor in zip(nomes, cores)}
         self.model = Box()
         self.painter = painter
@@ -240,6 +248,13 @@ class ToolBox:
         self.colors = self.tools = self.filling = self.menu = self.tool = self.marquee = None
 
     def main(self, _=0):
+        self.painter = self.painter or SvgPainter(self)
+        # self.menu = html.DIV(style={'position':"absolute", 'left':'10px', 'top':'100px'}) #, 'z-index': 10})
+        self.menu = html.DIV(style={'position': "absolute", 'left': '10px', 'top': '10px'})  # , 'z-index': 10})
+        _ = self.app.root <= self.menu
+        [tool.paint(canvas=self.menu) for tool in self.toolbox.values()]
+
+    def _main(self, _=0):
         self.painter = self.painter or SvgPainter(self)
         # self.menu = html.DIV(style={'position':"absolute", 'left':'10px', 'top':'100px'}) #, 'z-index': 10})
         self.menu = html.DIV(style={'position': "absolute", 'left': '10px', 'top': '10px'})  # , 'z-index': 10})
@@ -300,7 +315,12 @@ class ToolBox:
     def filler(self, color):
         self.filling.style.color = color
 
-    def tooler(self, ev=0, tool='', action=lambda *_: None):
+    def tooler(self, ev, tool):
+        self.tool.html = ""
+        _ = self.tool <= html.SPAN(Class=f"fa-solid fa-{tool.icon}", style={'font-size': '30px', 'color': 'black'})
+        tool.action(ev)
+
+    def tooler_(self, ev=0, tool='', action=lambda *_: None):
         self.tool.html = ""
         _ = self.tool <= html.SPAN(Class=tool, style={'font-size': '30px', 'color': 'black'})
         action(ev)
